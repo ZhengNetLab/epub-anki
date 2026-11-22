@@ -10,12 +10,15 @@
 - 前端：Vite + TypeScript，原生 DOM，不用框架。
 - EPUB 渲染：[foliate-js](https://github.com/johnfactotum/foliate-js)（MIT，npm 包 `foliate-js`）。
   通过 `<foliate-view>` 自定义元素使用；类型声明在 `src/foliate.d.ts`，只声明用到的部分。
-- AI：DeepSeek API（OpenAI 兼容 `/chat/completions`），默认模型 `deepseek-flash`，`reasoning_effort: low`，
-  JSON 输出模式。key 放在 `.env` 的 `DEEPSEEK_API_KEY`（可选 `DEEPSEEK_MODEL`、`DEEPSEEK_BASE_URL`）。
-  **key 只能在服务端读取**：`server/lookup.ts` 由 `vite.config.ts` 里的插件挂到 dev/preview 服务器的
-  `POST /api/lookup`，前端绝不接触 key。接口要求 `application/json` 且同源，防止其他网页盗刷。
-  请求/返回类型在 `src/lookup-types.ts`（前后端共用）。
-  注意：DeepSeek 的模型名会变，换模型前先 `GET https://api.deepseek.com/models` 确认。
+- AI：OpenAI 或 DeepSeek，均走 OpenAI 兼容的 `/chat/completions` + JSON 输出模式，配置在 `server/providers.ts`。
+  - 选择：`AI_PROVIDER=openai|deepseek`；未设置时有 `OPENAI_API_KEY` 就用 OpenAI，否则 DeepSeek。
+  - OpenAI 默认 `gpt-6-luna`，`reasoning_effort: none`，用 `max_completion_tokens`（不是 `max_tokens`）。
+  - DeepSeek 默认 `deepseek-flash`，`reasoning_effort: low`。
+  - **key 只能在服务端读取**：`server/lookup.ts` 由 `vite.config.ts` 里的插件挂到 dev/preview 服务器的
+    `POST /api/lookup`，前端绝不接触 key。接口要求 `application/json` 且同源，防止其他网页盗刷。
+  - 请求/返回类型在 `src/lookup-types.ts`（前后端共用）。
+  - 模型名经常变：换模型前先查 `GET {baseUrl}/models`，再用
+    `node scripts/bench-lookup.ts openai:<model> deepseek:<model>` 实测延迟。
 
 ## 功能约定
 
@@ -49,6 +52,7 @@ v1 不做：书库管理、同步、标注高亮、多格式支持之外的设�
 - `npm run dev`：开发服务器
 - `npm run typecheck`：类型检查
 - `npm run build`：构建
+- `node scripts/bench-lookup.ts [provider:model ...]`：实测各模型查词延迟（会真实调用 API）
 
 ## 注意
 

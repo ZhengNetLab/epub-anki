@@ -3,12 +3,9 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { LookupRequest, LookupResult } from '../src/lookup-types.ts'
+import type { LookupConfig } from './providers.ts'
 
-export interface LookupConfig {
-  apiKey?: string
-  model: string
-  baseUrl: string
-}
+export type { LookupConfig }
 
 const MAX_WORD = 80
 const MAX_SENTENCE = 1500
@@ -24,9 +21,11 @@ const SYSTEM_PROMPT = `你是一个面向中文母语读者的词典助手。用
 - "translation": 整个句子的通顺中文翻译
 不要输出 JSON 以外的任何内容。`
 
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
+export class HttpError extends Error {
+  status: number
+  constructor(status: number, message: string) {
     super(message)
+    this.status = status
   }
 }
 
@@ -43,7 +42,7 @@ function parseRequest(body: unknown): LookupRequest {
 const str = (x: unknown) => (typeof x === 'string' ? x.trim() : '')
 
 export async function lookup(req: LookupRequest, cfg: LookupConfig): Promise<LookupResult> {
-  if (!cfg.apiKey) throw new HttpError(500, '服务器未配置 DEEPSEEK_API_KEY（见 .env.example）')
+  if (!cfg.apiKey) throw new HttpError(500, `服务器未配置 ${cfg.keyVar}（见 .env.example）`)
 
   const user = [
     `词语：${req.word}`,
@@ -56,9 +55,8 @@ export async function lookup(req: LookupRequest, cfg: LookupConfig): Promise<Loo
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
     body: JSON.stringify({
       model: cfg.model,
-      reasoning_effort: 'low',
       response_format: { type: 'json_object' },
-      max_tokens: 1000,
+      ...cfg.extraBody,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: user },
