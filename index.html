@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EPUB 阅读器</title>
+  </head>
+  <body>
+    <header id="topbar">
+      <button id="toc-button" class="icon-btn" title="目录" disabled>☰</button>
+      <div id="book-title">EPUB 阅读器</div>
+      <button id="open-button" class="text-btn">打开 EPUB</button>
+      <input id="file-input" type="file" accept=".epub,application/epub+zip" hidden />
+    </header>
+
+    <main id="main">
+      <div id="welcome">
+        <p>把 EPUB 文件拖到这里，或点击右上角"打开 EPUB"</p>
+        <p class="hint">←/→ 键翻页</p>
+      </div>
+      <button id="prev-button" class="nav-btn" title="上一页" hidden>‹</button>
+      <div id="viewer"></div>
+      <button id="next-button" class="nav-btn" title="下一页" hidden>›</button>
+    </main>
+
+    <footer id="bottombar" hidden>
+      <input id="progress" type="range" min="0" max="1" step="any" value="0" list="tick-marks" />
+      <datalist id="tick-marks"></datalist>
+      <span id="location"></span>
+    </footer>
+
+    <div id="dim" hidden></div>
+    <aside id="sidebar" aria-hidden="true">
+      <div id="sidebar-head">
+        <img id="cover" alt="" hidden />
+        <div>
+          <div id="sidebar-title"></div>
+          <div id="sidebar-author"></div>
+        </div>
+      </div>
+      <nav id="toc"></nav>
+    </aside>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
