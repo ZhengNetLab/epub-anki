@@ -56,7 +56,8 @@ class CardStore extends EventTarget {
   add(input: CardInput): Card {
     const existing = this.#cards.find((c) => sameEntry(c, input))
     if (existing) return existing
-    const card: Card = { ...input, id: crypto.randomUUID(), createdAt: Date.now() }
+    const id = crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+    const card: Card = { ...input, id, createdAt: Date.now() }
     this.#cards.unshift(card)
     this.#changed()
     return card

@@ -1,17 +1,19 @@
 // Measure lookup latency per model with the real prompt.
 // Usage: node scripts/bench-lookup.ts [provider:model ...] [--runs N]
-//   e.g. node scripts/bench-lookup.ts openai:gpt-6-luna openai:gpt-6.1-terra deepseek:deepseek-flash
-// Reads keys from .env. Each run is one real (billed, tiny) API call.
+//   e.g. node scripts/bench-lookup.ts openai:gpt-6-luna openai:gpt-5.6-luna deepseek:deepseek-flash
+// Reads OPENAI_API_KEY / DEEPSEEK_API_KEY from .env (local dev only; the app itself
+// takes keys in its settings panel). Each run is one real (billed, tiny) API call.
 
-import { lookup } from '../server/lookup.ts'
-import { resolveConfig, type ProviderName } from '../server/providers.ts'
+import { lookup } from '../src/ai.ts'
+import { PROVIDERS, type ProviderName } from '../src/providers.ts'
 
 try { process.loadEnvFile('.env') } catch { /* no .env */ }
 
 const args = process.argv.slice(2)
 const runsIdx = args.indexOf('--runs')
 const runs = runsIdx >= 0 ? Number(args.splice(runsIdx, 2)[1]) || 3 : 3
-const targets = args.length ? args : ['openai:gpt-6-luna', 'openai:gpt-6.1-terra']
+const targets = args.length ? args : ['openai:gpt-6-luna', 'openai:gpt-5.6-luna']
+const KEY_VARS: Record<ProviderName, string> = { openai: 'OPENAI_API_KEY', deepseek: 'DEEPSEEK_API_KEY' }
 
 const samples = [
   { word: 'candour', sentence: 'She introduced herself as Wren and declared, with remarkable candour, that she had run away from a very dull school.', lang: 'en' },
@@ -20,12 +22,17 @@ const samples = [
 ]
 
 for (const target of targets) {
-  const [provider, model] = target.split(':') as [ProviderName, string | undefined]
-  const cfg = resolveConfig(process.env, { provider, model })
-  if (!cfg.apiKey) {
-    console.log(`${target}: skipped (no ${cfg.keyVar} in .env)`)
+  const [provider, modelArg] = target.split(':') as [ProviderName, string | undefined]
+  if (!(provider in PROVIDERS)) {
+    console.log(`${target}: unknown provider`)
     continue
   }
+  const apiKey = process.env[KEY_VARS[provider]]?.trim()
+  if (!apiKey) {
+    console.log(`${target}: skipped (no ${KEY_VARS[provider]} in .env)`)
+    continue
+  }
+  const cfg = { provider, apiKey, model: modelArg || PROVIDERS[provider].defaultModel }
   const times: number[] = []
   let last = ''
   for (let i = 0; i < runs; i++) {

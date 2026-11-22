@@ -1,8 +1,16 @@
 import './style.css'
 import { openBook, type Reader } from './reader'
 import { initCardsUI } from './cards-ui'
+import { openSettings } from './settings-ui'
+import { settings } from './settings'
 
 initCardsUI()
+
+const keyHint = document.querySelector<HTMLElement>('#welcome-key-hint')!
+const syncKeyHint = () => { keyHint.hidden = settings.config() !== null }
+settings.addEventListener('change', syncKeyHint)
+syncKeyHint()
+document.querySelector('#settings-button')!.addEventListener('click', openSettings)
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => {
   const el = document.querySelector<T>(sel)

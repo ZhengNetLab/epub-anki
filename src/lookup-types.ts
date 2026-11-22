@@ -1,4 +1,4 @@
-// Shared between the browser and the /api/lookup server handler.
+// Lookup request/result shapes.
 
 export interface LookupRequest {
   /** Selected word or phrase. */
@@ -22,8 +22,4 @@ export interface LookupResult {
   note: string
   /** Chinese translation of the whole sentence. */
   translation: string
-}
-
-export interface LookupError {
-  error: string
 }

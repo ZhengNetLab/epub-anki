@@ -95,13 +95,20 @@ export function watchSelection(
     clearTimeout(timer)
     onChange(readSelection(doc, lang))
   }
-  doc.addEventListener('pointerdown', () => { pointerDown = true; onChange(null) }, { signal })
+  doc.addEventListener('pointerdown', (e) => {
+    // Touch selection (long-press, handle drags) ends with pointercancel rather than
+    // pointerup, so only mouse/pen drags are gated on pointerup.
+    pointerDown = e.pointerType !== 'touch'
+    onChange(null)
+  }, { signal })
   // Mouse/pen: wait until the drag ends. Small delay lets double-click selection settle.
-  doc.addEventListener('pointerup', () => {
+  doc.addEventListener('pointerup', (e) => {
     pointerDown = false
+    if (e.pointerType === 'touch') return
     clearTimeout(timer)
     timer = window.setTimeout(report, 10)
   }, { signal })
+  doc.addEventListener('pointercancel', () => { pointerDown = false }, { signal })
   // Keyboard and touch selection: debounce selection changes.
   doc.addEventListener('selectionchange', () => {
     if (pointerDown) return

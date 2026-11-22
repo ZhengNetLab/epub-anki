@@ -2,22 +2,28 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>EPUB 阅读器</title>
+    <meta name="theme-color" content="#2f6fdb" />
+    <meta name="description" content="读 EPUB，选词用 AI 查释义，一键做成 Anki 卡片" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   </head>
   <body>
     <header id="topbar">
       <button id="toc-button" class="icon-btn" title="目录" disabled>☰</button>
       <div id="book-title">EPUB 阅读器</div>
+      <button id="settings-button" class="icon-btn" title="设置">⚙</button>
       <button id="cards-button" class="text-btn" title="卡片列表">卡片 <span id="cards-count" class="badge" hidden>0</span></button>
-      <button id="open-button" class="text-btn">打开 EPUB</button>
-      <input id="file-input" type="file" accept=".epub,application/epub+zip" hidden />
+      <button id="open-button" class="text-btn">打开<span class="wide-only"> EPUB</span></button>
+      <input id="file-input" type="file" hidden />
     </header>
 
     <main id="main">
       <div id="welcome">
         <p>把 EPUB 文件拖到这里，或点击右上角"打开 EPUB"</p>
-        <p class="hint">←/→ 键翻页</p>
+        <p class="hint">←/→ 键翻页；手机上点屏幕左右两侧或左右滑动翻页</p>
+        <p class="hint" id="welcome-key-hint" hidden>首次使用请先点右上角 ⚙ 填写 API key</p>
       </div>
       <button id="prev-button" class="nav-btn" title="上一页" hidden>‹</button>
       <div id="viewer"></div>

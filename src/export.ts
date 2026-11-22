@@ -69,7 +69,8 @@ export function downloadText(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+/** .tsv rather than .txt: AnkiMobile/AnkiDroid only offer to open .tsv/.csv text imports. */
 export function exportFilename(now = new Date()) {
   const p = (n: number) => String(n).padStart(2, '0')
-  return `anki-cards-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.txt`
+  return `anki-cards-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.tsv`
 }

@@ -120,6 +120,23 @@ export async function openBook(file: File | string): Promise<Reader> {
     doc.addEventListener('keydown', onKey, { signal })
     doc.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') lookup.hide() }, { signal })
     watchSelection(doc, lang, (info) => lookup.onSelection(info), signal)
+
+    // Touch: tap the left/right 30% of the screen to turn pages. A tap that only
+    // dismisses a selection or the lookup panel doesn't turn the page.
+    let dismissing = false
+    doc.addEventListener('pointerdown', (ev) => {
+      if (ev.pointerType === 'touch') dismissing = lookup.visible || !doc.getSelection()?.isCollapsed
+    }, { capture: true, signal })
+    doc.addEventListener('click', (ev) => {
+      if ((ev as PointerEvent).pointerType !== 'touch' || dismissing) return
+      if ((ev.target as Element | null)?.closest?.('a')) return
+      if (!doc.getSelection()?.isCollapsed) return
+      const frame = doc.defaultView?.frameElement?.getBoundingClientRect()
+      const x = ev.clientX + (frame?.left ?? 0)
+      const w = document.documentElement.clientWidth
+      if (x < w * 0.3) view.goLeft()
+      else if (x > w * 0.7) view.goRight()
+    }, { signal })
   }, { signal })
 
   // ---- progress ----
