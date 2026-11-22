@@ -12,7 +12,8 @@
   通过 `<foliate-view>` 自定义元素使用；类型声明在 `src/foliate.d.ts`，只声明用到的部分。
 - AI：OpenAI 或 DeepSeek，均走 OpenAI 兼容的 `/chat/completions` + JSON 输出模式，配置在 `server/providers.ts`。
   - 选择：`AI_PROVIDER=openai|deepseek`；未设置时有 `OPENAI_API_KEY` 就用 OpenAI，否则 DeepSeek。
-  - OpenAI 默认 `gpt-6-luna`，`reasoning_effort: none`，用 `max_completion_tokens`（不是 `max_tokens`）。
+  - OpenAI 默认 `gpt-4.1-mini`（2026-11-22 实测最快，中位数约 1.3s）。推理模型（gpt-5+）发 `reasoning_effort: none`，
+    gpt-4* 不发该参数；统一用 `max_completion_tokens`（不是 `max_tokens`）。
   - DeepSeek 默认 `deepseek-flash`，`reasoning_effort: low`。
   - **key 只能在服务端读取**：`server/lookup.ts` 由 `vite.config.ts` 里的插件挂到 dev/preview 服务器的
     `POST /api/lookup`，前端绝不接触 key。接口要求 `application/json` 且同源，防止其他网页盗刷。

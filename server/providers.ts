@@ -30,19 +30,21 @@ export function resolveConfig(env: Env, override?: Partial<Pick<LookupConfig, 'p
       : get(env, 'OPENAI_API_KEY') ? 'openai' : 'deepseek')
 
   if (provider === 'openai') {
+    // Fastest in our benchmark (2026-11-22, scripts/bench-lookup.ts): gpt-4.1-mini ~1.3s median,
+    // vs gpt-5.6-luna ~1.6s, gpt-5.4-nano ~1.65s, gpt-6-luna ~1.8s, with similar answer quality.
+    const model = override?.model ?? get(env, 'OPENAI_MODEL') ?? 'gpt-4.1-mini'
+    // gpt-4* models are non-reasoning and reject the reasoning_effort parameter.
+    const reasoning = /^gpt-4/.test(model) ? {}
+      // "none" skips reasoning tokens entirely: lowest latency for a short dictionary answer.
+      : { reasoning_effort: get(env, 'OPENAI_REASONING_EFFORT') ?? 'none' }
     return {
       provider,
       apiKey: get(env, 'OPENAI_API_KEY'),
       keyVar: 'OPENAI_API_KEY',
-      // GPT-6 Luna: OpenAI's smallest/cheapest current model, supports reasoning_effort "none".
-      model: override?.model ?? get(env, 'OPENAI_MODEL') ?? 'gpt-6-luna',
+      model,
       baseUrl: get(env, 'OPENAI_BASE_URL') ?? 'https://api.openai.com/v1',
-      extraBody: {
-        // Reasoning models take max_completion_tokens, not max_tokens.
-        max_completion_tokens: 1000,
-        // "none" skips reasoning tokens entirely: lowest latency for a short dictionary answer.
-        reasoning_effort: get(env, 'OPENAI_REASONING_EFFORT') ?? 'none',
-      },
+      // Reasoning models take max_completion_tokens, not max_tokens.
+      extraBody: { max_completion_tokens: 1000, ...reasoning },
     }
   }
   return {
