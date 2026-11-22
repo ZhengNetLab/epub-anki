@@ -50,9 +50,15 @@
 
 ## 手机（安卓）适配
 
-- 触屏长按选词以 `pointercancel` 结束而不是 `pointerup`：`src/selection.ts` 只对鼠标/笔等 `pointerup`，
-  触屏靠 `selectionchange` 去抖。
-- 触屏时"查词"按钮放在选区下方 30px（系统复制菜单在上方、拖动手柄在下方）。
+- **触屏不用原生选区**（`src/touch-select.ts`）：原生选区会让安卓 Chrome 弹出自带菜单（复制/分享/网页搜索）
+  和 Google "Touch to Search" 搜索条。所以触屏（`pointer: coarse`）时书页设 `user-select: none`，
+  自己实现：长按 450ms 选中手指下的词（`caretPositionFromPoint` + `Intl.Segmenter` 分词），按住拖动扩展成短语，
+  用 CSS Custom Highlight API（`::highlight(epub-lookup)`）画高亮；书页 `contextmenu` 一律阻止。
+  桌面（鼠标）仍用原生选区（`src/selection.ts`）。
+- 触屏事件在 iframe 的 window 捕获阶段处理：长按等待中/选择中的 `touchmove` 和选择结束的 `touchend`
+  都 `stopImmediatePropagation`，不让 foliate-js 收到。否则 foliate-js 会滑动翻页，或在 touchend 时 snap，
+  snap 触发 relocate，进而关闭刚弹出的查词按钮。超过 10px 的移动视为滑动，交还 foliate-js 翻页。
+- 关闭查词 UI 时通过 `LookupUI.onHide` 清除自定义高亮。触屏"查词"按钮在词上方 14px。
 - 窄屏（≤600px）查词面板是底部弹出的半屏面板（`.lookup-panel.sheet`）。
 - 触屏点屏幕左/右 30% 翻页（`src/reader.ts`）；若这次点击是在关闭选区/查词面板，则不翻页。
   foliate-js 自带滑动翻页。触屏隐藏左右箭头按钮。

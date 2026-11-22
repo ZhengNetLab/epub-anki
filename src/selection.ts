@@ -70,7 +70,11 @@ function toTopRect(rect: DOMRect, doc: Document): DOMRect {
 export function readSelection(doc: Document, lang: string): SelectionInfo | null {
   const sel = doc.getSelection()
   if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null
-  const range = sel.getRangeAt(0)
+  return infoFromRange(sel.getRangeAt(0), doc, lang)
+}
+
+/** Build lookup info (text, sentence, position) for any range in a book document. */
+export function infoFromRange(range: Range, doc: Document, lang: string): SelectionInfo | null {
   const text = trimPunct(range.toString().replace(/\s+/g, ' '))
   if (!text || text.length > MAX_LEN) return null
   const rects = range.getClientRects()

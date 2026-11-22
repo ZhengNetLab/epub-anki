@@ -72,10 +72,9 @@ export class LookupUI {
     this.#current = info
     this.#panel.hidden = true
     this.#button.hidden = false
-    // Touch: Android/iOS show their own copy/share menu above the selection and drag
-    // handles just below it, so put the button below, clear of the handles.
-    if (coarse.matches) place(this.#button, info.rect, 'below', 30)
-    else place(this.#button, info.rect, 'above')
+    // Touch selection is our own (no native menu/handles); keep the button above the word,
+    // clear of the finger, with a little extra room.
+    place(this.#button, info.rect, 'above', coarse.matches ? 14 : MARGIN)
   }
 
   /** Title of the open book, stored on cards. */
@@ -88,7 +87,11 @@ export class LookupUI {
     return !this.#button.hidden || !this.#panel.hidden
   }
 
+  /** Called whenever the lookup UI closes (e.g. to clear a custom selection highlight). */
+  onHide: (() => void) | null = null
+
   hide() {
+    this.onHide?.()
     this.#button.hidden = true
     this.#panel.hidden = true
     this.#current = null

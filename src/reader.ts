@@ -1,6 +1,7 @@
 import 'foliate-js/view.js'
 import { createTOCView } from 'foliate-js/ui/tree.js'
 import { watchSelection } from './selection'
+import { enableTouchSelect } from './touch-select'
 import { LookupUI } from './lookup-ui'
 import type { Contributor, FoliateView, LanguageMap, LoadDetail, RelocateDetail } from './types'
 
@@ -71,6 +72,11 @@ export async function openBook(file: File | string): Promise<Reader> {
 
   const ac = new AbortController()
   const { signal } = ac
+  // Touch screens use our own long-press selection (no native selection → no Chrome
+  // action menu or Google "Touch to Search"). Each loaded section registers a clearer.
+  const touch = matchMedia('(pointer: coarse)').matches
+  const clearHighlights = new Set<() => void>()
+  lookup.onHide = () => clearHighlights.forEach((c) => c())
   const { book } = view
 
   const fileName = typeof file === 'string' ? decodeURIComponent(file.split('/').pop() ?? '') : file.name
@@ -120,6 +126,11 @@ export async function openBook(file: File | string): Promise<Reader> {
     doc.addEventListener('keydown', onKey, { signal })
     doc.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') lookup.hide() }, { signal })
     watchSelection(doc, lang, (info) => lookup.onSelection(info), signal)
+    if (touch) {
+      const ts = enableTouchSelect(doc, lang, (info) => lookup.onSelection(info), signal)
+      clearHighlights.add(ts.clear)
+      doc.defaultView?.addEventListener('pagehide', () => clearHighlights.delete(ts.clear), { signal })
+    }
 
     // Touch: tap the left/right 30% of the screen to turn pages. A tap that only
     // dismisses a selection or the lookup panel doesn't turn the page.
@@ -192,6 +203,7 @@ export async function openBook(file: File | string): Promise<Reader> {
     destroy() {
       ac.abort()
       lookup.hide()
+      lookup.onHide = null
       closeSidebar()
       view.close()
       view.remove()
