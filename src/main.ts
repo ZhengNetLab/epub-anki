@@ -5,6 +5,11 @@ import { openSettings } from './settings-ui'
 import { settings } from './settings'
 import { initLibrary } from './library-ui'
 import { getFile, markOpened, saveProgress, type BookMeta } from './library-db'
+import { applyAppTheme, readingPrefs } from './reading-prefs'
+import { initReadingUI } from './reading-ui'
+
+applyAppTheme()
+readingPrefs.addEventListener('change', applyAppTheme)
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => {
   const el = document.querySelector<T>(sel)
@@ -13,6 +18,7 @@ const $ = <T extends HTMLElement = HTMLElement>(sel: string) => {
 }
 
 initCardsUI()
+const readingUI = initReadingUI()
 $('#settings-button').addEventListener('click', openSettings)
 
 const keyBanner = $('#key-banner')
@@ -24,6 +30,7 @@ const fileInput = $<HTMLInputElement>('#file-input')
 const addButton = $('#open-button')
 const backButton = $('#back-button')
 const tocButton = $('#toc-button')
+const readingButton = $('#reading-button')
 const titleEl = $('#book-title')
 const libraryEl = $('#library')
 const main = $('#main')
@@ -38,14 +45,15 @@ async function showLibrary() {
   reader = null
   document.title = 'EPUB 阅读器'
   titleEl.textContent = '书库'
-  backButton.hidden = tocButton.hidden = true
+  backButton.hidden = tocButton.hidden = readingButton.hidden = true
+  readingUI.close()
   addButton.hidden = false
   await library.show()
 }
 
 function enterReader() {
   library.hide()
-  backButton.hidden = tocButton.hidden = false
+  backButton.hidden = tocButton.hidden = readingButton.hidden = false
   addButton.hidden = true
   // Let the phone's back gesture return to the library instead of leaving the app.
   if (!history.state?.reader) history.pushState({ reader: true }, '')

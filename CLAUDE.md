@@ -38,6 +38,23 @@
 - 打开书时 `history.pushState`，安卓返回手势/‹ 按钮回到书库，不会直接退出应用。
 - 桌面拖入文件：加入书库；只拖一个文件时直接打开。
 
+## 阅读设置
+
+- "Aa" 按钮（仅阅读时显示）打开阅读设置面板（`src/reading-ui.ts`），手机上是底部弹出面板，背后透明遮罩：
+  改动实时预览，点书页只关闭面板不翻页。
+- 偏好在 `src/reading-prefs.ts`（localStorage `epub-anki:reading`）：主题（跟随系统/白色/纸张/护眼/夜间/纯黑）、
+  字号（px，12–32）、字体（原书/衬线/无衬线）、行距、页边距（paginator `gap` 4%/7%/11%）、
+  翻页（paginator `flow` paginated/scrolled）、两端对齐（含自动断词）。所有书共用。
+- 主题作用于整个应用：`<html data-theme>` + `style.css` 里每个主题一套 CSS 变量（`--page` 是书页底色），
+  同时改 `<meta name="theme-color">`（安卓状态栏颜色）。`THEMES`（JS）与 CSS 变量的颜色要保持一致。
+- 书页 CSS 由 `bookCss()` 生成，经 `renderer.setStyles()` 注入：书页 html/body 背景**透明**，底色由 `#viewer`
+  的 `--page` 提供——foliate-js 只在章节加载时取一次背景色，若书页自己画背景，切换主题后会残留旧颜色。
+  iframe 的 `color-scheme` 必须与外层一致，否则 Chrome 会给 iframe 画不透明背景。
+  为了主题生效，书内元素的文字颜色/背景色被强制为继承/透明；夜间主题图片略微调暗。
+- 字号通过 `html { font-size }` 实现：用 em/rem 的书会整体缩放，写死 px/pt 的部分不会变。
+- 滚动模式下，touch-select 对长按前的小幅移动只 `stopImmediatePropagation` 不 `preventDefault`，
+  否则 Chrome 会禁止本次手势的原生滚动。
+
 ## 功能约定
 
 - 查词请求带上：选中的词 + 所在句子 + 书的语言。返回 `LookupResult`：
@@ -97,6 +114,7 @@
 6. [x] 纯前端化 + 安卓 PWA（设置面板、浏览器直连 AI、触屏适配、离线缓存、GitHub Pages 工作流）
 7. [x] 触屏自定义长按选词（去掉 Chrome 菜单）
 8. [x] 书库首页（IndexedDB 存书、进度、返回手势）
+9. [x] 阅读设置（主题/纸张颜色/夜间、字号、字体、行距、页边距、翻页方式、两端对齐）
 
 ## 命令
 

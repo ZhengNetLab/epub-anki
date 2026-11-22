@@ -5,26 +5,7 @@ import { enableTouchSelect } from './touch-select'
 import { LookupUI } from './lookup-ui'
 import type { FoliateView, LoadDetail, RelocateDetail } from './types'
 import { formatContributor, formatLang } from './book-meta'
-
-// CSS injected into each book section (adapted from foliate-js reader.js).
-const BOOK_CSS = `
-  @namespace epub "http://www.idpf.org/2007/ops";
-  html { color-scheme: light dark; }
-  @media (prefers-color-scheme: dark) { a:link { color: lightblue; } }
-  p, li, blockquote, dd {
-    line-height: 1.6;
-    text-align: start;
-    hanging-punctuation: allow-end last;
-    widows: 2;
-  }
-  [align="left"] { text-align: left; }
-  [align="right"] { text-align: right; }
-  [align="center"] { text-align: center; }
-  [align="justify"] { text-align: justify; }
-  pre { white-space: pre-wrap !important; }
-  aside[epub|type~="endnote"], aside[epub|type~="footnote"],
-  aside[epub|type~="note"], aside[epub|type~="rearnote"] { display: none; }
-`
+import { bookCss, MARGINS, readingPrefs } from './reading-prefs'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
 
@@ -193,7 +174,15 @@ export async function openBook(file: File | string, opts: OpenOptions = {}): Pro
     }
   }, { signal })
 
-  view.renderer.setStyles?.(BOOK_CSS)
+  // Reading preferences: apply now and live whenever they change.
+  const applyPrefs = () => {
+    const p = readingPrefs.get()
+    view.renderer.setAttribute('flow', p.flow)
+    view.renderer.setAttribute('gap', MARGINS[p.margin].gap)
+    view.renderer.setStyles?.(bookCss(p))
+  }
+  applyPrefs()
+  readingPrefs.addEventListener('change', applyPrefs, { signal })
   await view.init({ lastLocation: opts.onLocation ? opts.lastLocation : loadPos(key), showTextStart: true })
 
   return {

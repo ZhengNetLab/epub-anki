@@ -140,7 +140,8 @@ export function enableTouchSelect(
         reset()
         return
       }
-      e.preventDefault()
+      // Not preventDefault: Chrome decides on the first touchmove whether a gesture may
+      // scroll natively, and cancelling it would break scrolling in "scrolled" flow.
       e.stopImmediatePropagation()
       return
     }
