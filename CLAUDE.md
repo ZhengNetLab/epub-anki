@@ -26,6 +26,18 @@
 - 部署：`.github/workflows/deploy.yml` 推送 main 后构建并发布到 GitHub Pages，
   `BASE_PATH=/<仓库名>/`（本地构建默认 `/`）。Pages 需在仓库设置里选 Source: GitHub Actions。
 
+## 书库
+
+- 首页是书库（`src/library-ui.ts`）：封面网格（手机每行 3 本）、书名、作者、阅读进度；按最近打开排序。
+  "添加"支持多选；同一文件重复添加会被识别（按文件 SHA-256 去重）。⋯ 按钮删除（自定义确认对话框，卡片保留）。
+- 书存在 IndexedDB（`src/library-db.ts`，库名 `epub-anki`）：`books` 存元数据（含封面 Blob、`cfi`、`progress`），
+  `files` 存 EPUB 文件本体，分开存以便列书库时不读大文件。添加时用 foliate-js 的 `makeBook` 解析书名/作者/封面，
+  并请求 `navigator.storage.persist()`。
+- 阅读进度：`openBook(file, { lastLocation, onLocation })`，每次翻页把 CFI 和全书进度写回 IndexedDB。
+  不经书库打开的书（`?book=` 开发参数）仍用旧的 localStorage 位置记忆。
+- 打开书时 `history.pushState`，安卓返回手势/‹ 按钮回到书库，不会直接退出应用。
+- 桌面拖入文件：加入书库；只拖一个文件时直接打开。
+
 ## 功能约定
 
 - 查词请求带上：选中的词 + 所在句子 + 书的语言。返回 `LookupResult`：
@@ -71,7 +83,7 @@
 - **CSP 尚未添加（用户决定暂缓）**：foliate-js 文档要求必须用 CSP 屏蔽书内脚本，否则恶意 EPUB 里的脚本
   能读取 localStorage 中的 API key。计划：`script-src 'self'`，`connect-src 'self' https://api.openai.com https://api.deepseek.com`。
 - iOS 未适配（Safari 7 天清理非主屏幕网站存储、选词菜单差异等）。
-- 每次需重新从文件选择 EPUB（未把书存进 IndexedDB）；未支持从文件管理器"用此应用打开"。
+- 未支持从文件管理器"用此应用打开"/分享到本应用（可用 Web Share Target / file_handlers）。
 
 ## 开发阶段
 
@@ -83,6 +95,8 @@
    （`src/cards.ts` 卡片存储，`src/cards-ui.ts` 右侧抽屉；共用 DOM 工具在 `src/dom.ts`）
 5. [x] 导出 TSV，并在 Anki 中实际导入验证
 6. [x] 纯前端化 + 安卓 PWA（设置面板、浏览器直连 AI、触屏适配、离线缓存、GitHub Pages 工作流）
+7. [x] 触屏自定义长按选词（去掉 Chrome 菜单）
+8. [x] 书库首页（IndexedDB 存书、进度、返回手势）
 
 ## 命令
 

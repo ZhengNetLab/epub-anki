@@ -11,20 +11,27 @@
   </head>
   <body>
     <header id="topbar">
-      <button id="toc-button" class="icon-btn" title="目录" disabled>☰</button>
-      <div id="book-title">EPUB 阅读器</div>
+      <button id="back-button" class="icon-btn" title="返回书库" hidden>‹</button>
+      <button id="toc-button" class="icon-btn" title="目录" disabled hidden>☰</button>
+      <div id="book-title">书库</div>
       <button id="settings-button" class="icon-btn" title="设置">⚙</button>
       <button id="cards-button" class="text-btn" title="卡片列表">卡片 <span id="cards-count" class="badge" hidden>0</span></button>
-      <button id="open-button" class="text-btn">打开<span class="wide-only"> EPUB</span></button>
-      <input id="file-input" type="file" hidden />
+      <button id="open-button" class="text-btn">添加<span class="wide-only">书籍</span></button>
+      <input id="file-input" type="file" multiple hidden />
     </header>
 
     <main id="main">
-      <div id="welcome">
-        <p>把 EPUB 文件拖到这里，或点击右上角"打开 EPUB"</p>
-        <p class="hint">←/→ 键翻页；手机上点屏幕左右两侧或左右滑动翻页</p>
-        <p class="hint" id="welcome-key-hint" hidden>首次使用请先点右上角 ⚙ 填写 API key</p>
-      </div>
+      <section id="library" hidden>
+        <p id="key-banner" hidden>首次使用请先点右上角 ⚙ 填写 AI 服务的 API key</p>
+        <div id="library-status" hidden></div>
+        <ul id="library-grid"></ul>
+        <div id="library-empty" hidden>
+          <p class="empty-title">书库是空的</p>
+          <p class="hint">点「添加书籍」从设备里选择 EPUB 文件。书会保存在这台设备上，以后直接点开就能接着读。</p>
+          <button id="library-add" class="primary-btn">添加书籍</button>
+          <p class="hint">阅读时：长按选词查释义，点屏幕左右两侧或左右滑动翻页</p>
+        </div>
+      </section>
       <button id="prev-button" class="nav-btn" title="上一页" hidden>‹</button>
       <div id="viewer"></div>
       <button id="next-button" class="nav-btn" title="下一页" hidden>›</button>

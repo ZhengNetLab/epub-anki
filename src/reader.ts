@@ -3,7 +3,8 @@ import { createTOCView } from 'foliate-js/ui/tree.js'
 import { watchSelection } from './selection'
 import { enableTouchSelect } from './touch-select'
 import { LookupUI } from './lookup-ui'
-import type { Contributor, FoliateView, LanguageMap, LoadDetail, RelocateDetail } from './types'
+import type { FoliateView, LoadDetail, RelocateDetail } from './types'
+import { formatContributor, formatLang } from './book-meta'
 
 // CSS injected into each book section (adapted from foliate-js reader.js).
 const BOOK_CSS = `
@@ -27,24 +28,11 @@ const BOOK_CSS = `
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
 
-const formatLang = (x?: LanguageMap): string => {
-  if (!x) return ''
-  if (typeof x === 'string') return x
-  const keys = Object.keys(x)
-  return x[keys[0]] ?? ''
-}
-
-const formatContributor = (c?: Contributor): string => {
-  if (!c) return ''
-  const one = (x: string | { name: LanguageMap }) => (typeof x === 'string' ? x : formatLang(x.name))
-  return Array.isArray(c) ? c.map(one).join(', ') : one(c)
-}
-
 const lookup = new LookupUI()
 
 const percent = new Intl.NumberFormat('zh-CN', { style: 'percent' })
 
-// Remember last reading position per book (per-browser convenience only).
+// Fallback position memory for books opened outside the library (e.g. the ?book= dev URL).
 const posKey = (title: string, author: string) => `epub-anki:pos:${title}::${author}`
 const loadPos = (key: string) => {
   try { return localStorage.getItem(key) ?? undefined } catch { return undefined }
@@ -58,7 +46,14 @@ export interface Reader {
   destroy(): void
 }
 
-export async function openBook(file: File | string): Promise<Reader> {
+export interface OpenOptions {
+  /** Where to resume (EPUB CFI); defaults to the start of the text. */
+  lastLocation?: string
+  /** Called on every page change with the position and overall progress (0..1). */
+  onLocation?: (cfi: string, fraction: number) => void
+}
+
+export async function openBook(file: File | string, opts: OpenOptions = {}): Promise<Reader> {
   const container = $('#viewer')
   const view = document.createElement('foliate-view') as FoliateView
   container.append(view)
@@ -192,11 +187,14 @@ export async function openBook(file: File | string): Promise<Reader> {
       : location ? `位置 ${location.current + 1}/${location.total}` : ''
     locLabel.textContent = [tocItem?.label?.trim(), where, percent.format(fraction)].filter(Boolean).join(' · ')
     if (tocItem?.href) tocView?.setCurrentHref(tocItem.href)
-    if (cfi) savePos(key, cfi)
+    if (cfi) {
+      if (opts.onLocation) opts.onLocation(cfi, fraction)
+      else savePos(key, cfi)
+    }
   }, { signal })
 
   view.renderer.setStyles?.(BOOK_CSS)
-  await view.init({ lastLocation: loadPos(key), showTextStart: true })
+  await view.init({ lastLocation: opts.onLocation ? opts.lastLocation : loadPos(key), showTextStart: true })
 
   return {
     view,
@@ -207,6 +205,13 @@ export async function openBook(file: File | string): Promise<Reader> {
       closeSidebar()
       view.close()
       view.remove()
+      // Reset the reader chrome so the library screen starts clean.
+      prevBtn.hidden = nextBtn.hidden = true
+      footer.hidden = true
+      tocBtn.disabled = true
+      tocNav.replaceChildren()
+      locLabel.textContent = ''
+      if (cover.src.startsWith('blob:')) URL.revokeObjectURL(cover.src)
     },
   }
 }
