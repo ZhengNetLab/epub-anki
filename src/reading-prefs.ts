@@ -46,9 +46,9 @@ export const FONTS: Record<FontId, { label: string; stack: string | null }> = {
   sans: { label: '无衬线', stack: 'system-ui, "Noto Sans", "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' },
 }
 
-const DEFAULTS: ReadingPrefs = {
+export const DEFAULT_PREFS: ReadingPrefs = {
   theme: 'auto',
-  fontSize: 18,
+  fontSize: 24,
   font: 'book',
   lineHeight: 1.6,
   margin: 'medium',
@@ -57,16 +57,24 @@ const DEFAULTS: ReadingPrefs = {
 }
 
 const KEY = 'epub-anki:reading'
+/** Bumped when defaults change in a way saved prefs should pick up. */
+const VERSION = 2
 const darkQuery = matchMedia('(prefers-color-scheme: dark)')
 
 class PrefsStore extends EventTarget {
-  #p: ReadingPrefs = { ...DEFAULTS }
+  #p: ReadingPrefs = { ...DEFAULT_PREFS }
 
   constructor() {
     super()
     try {
       const raw = localStorage.getItem(KEY)
-      if (raw) this.#p = { ...DEFAULTS, ...(JSON.parse(raw) as Partial<ReadingPrefs>) }
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<ReadingPrefs> & { v?: number }
+        // v2 raised the default size 18 → 24; a saved 18 was almost always the old default.
+        if ((saved.v ?? 1) < 2 && saved.fontSize === 18) saved.fontSize = DEFAULT_PREFS.fontSize
+        delete saved.v
+        this.#p = { ...DEFAULT_PREFS, ...saved }
+      }
     } catch { /* defaults */ }
     // "Follow system" themes must react when the OS switches light/dark.
     darkQuery.addEventListener('change', () => {
@@ -81,7 +89,7 @@ class PrefsStore extends EventTarget {
   set(patch: Partial<ReadingPrefs>) {
     this.#p = { ...this.#p, ...patch }
     try {
-      localStorage.setItem(KEY, JSON.stringify(this.#p))
+      localStorage.setItem(KEY, JSON.stringify({ ...this.#p, v: VERSION }))
     } catch { /* not persisted */ }
     this.dispatchEvent(new Event('change'))
   }
@@ -102,12 +110,20 @@ export function applyAppTheme() {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEMES[id].bg)
 }
 
+/** Appended to our selectors to outrank book styles: an ID selector that never matches
+ *  adds ID-level specificity, so our !important rules beat the book's class-based
+ *  !important rules (common in Calibre conversions). Inline !important still wins. */
+const B = ':not(#__epub_anki__)'
+
 /** CSS injected into each book section. Page background stays transparent: the theme
  *  colour is painted behind the iframe, because foliate-js only samples a section's
  *  background when it loads and would otherwise show stale colours after a theme switch. */
 export function bookCss(p: ReadingPrefs = readingPrefs.get()): string {
   const t = THEMES[readingPrefs.activeTheme()]
   const font = FONTS[p.font].stack
+  // Typography applies to every element, not just <p>: many EPUBs (notably Chinese ones)
+  // use <div> paragraphs and set line-height on spans.
+  const all = `html body${B}, html body *${B}:not(svg *)`
   return `
   @namespace epub "http://www.idpf.org/2007/ops";
   html {
@@ -116,22 +132,21 @@ export function bookCss(p: ReadingPrefs = readingPrefs.get()): string {
     color: ${t.fg} !important;
     background: transparent !important;
   }
-  body { background: transparent !important; }
+  /* Body text follows the chosen size even if the book fixes it in px/pt. */
+  html body${B} { font-size: 1rem !important; background: transparent !important; }
   /* Books often hard-code black text or white boxes; follow the theme instead. */
-  body *:not(img):not(svg):not(svg *):not(video) {
+  html body *${B}:not(img):not(svg):not(svg *):not(video) {
     color: inherit !important;
     background-color: transparent !important;
   }
-  a:link, a:visited { color: ${t.link} !important; }
-  ${font ? `body, body *:not(code):not(pre):not(kbd):not(samp) { font-family: ${font} !important; }` : ''}
+  html a${B}:link, html a${B}:visited { color: ${t.link} !important; }
+  ${all} { line-height: ${p.lineHeight} !important; }
+  ${font ? `html body${B}, html body *${B}:not(code):not(pre):not(kbd):not(samp):not(svg *) { font-family: ${font} !important; }` : ''}
   p, li, blockquote, dd {
-    line-height: ${p.lineHeight} !important;
-    text-align: ${p.justify ? 'justify' : 'start'};
-    -webkit-hyphens: ${p.justify ? 'auto' : 'manual'};
-    hyphens: ${p.justify ? 'auto' : 'manual'};
     hanging-punctuation: allow-end last;
     widows: 2;
   }
+  ${p.justify ? `html :is(p, li, blockquote, dd)${B} { text-align: justify !important; -webkit-hyphens: auto; hyphens: auto; }` : ''}
   [align="left"] { text-align: left; }
   [align="right"] { text-align: right; }
   [align="center"] { text-align: center; }

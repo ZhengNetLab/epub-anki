@@ -2,7 +2,7 @@
 // margins, page-turn style, justification. Changes apply live.
 
 import {
-  FONT_SIZE, FONTS, LINE_HEIGHTS, MARGINS, THEMES, readingPrefs,
+  DEFAULT_PREFS, FONT_SIZE, FONTS, LINE_HEIGHTS, MARGINS, THEMES, readingPrefs,
   type FlowId, type FontId, type MarginId, type ReadingPrefs, type ThemeId,
 } from './reading-prefs'
 import { el } from './dom'
@@ -104,8 +104,7 @@ export function initReadingUI(): ReadingUI {
 
   const reset = el('button', 'text-btn', '恢复默认')
   reset.type = 'button'
-  reset.addEventListener('click', () =>
-    set({ theme: 'auto', fontSize: 18, font: 'book', lineHeight: 1.6, margin: 'medium', flow: 'paginated', justify: false }))
+  reset.addEventListener('click', () => set({ ...DEFAULT_PREFS }))
   const foot = el('div', 'reading-foot')
   foot.append(reset)
 
