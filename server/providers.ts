@@ -30,9 +30,10 @@ export function resolveConfig(env: Env, override?: Partial<Pick<LookupConfig, 'p
       : get(env, 'OPENAI_API_KEY') ? 'openai' : 'deepseek')
 
   if (provider === 'openai') {
-    // Fastest in our benchmark (2026-11-22, scripts/bench-lookup.ts): gpt-4.1-mini ~1.3s median,
-    // vs gpt-5.6-luna ~1.6s, gpt-5.4-nano ~1.65s, gpt-6-luna ~1.8s, with similar answer quality.
-    const model = override?.model ?? get(env, 'OPENAI_MODEL') ?? 'gpt-4.1-mini'
+    // gpt-6-luna: cheapest current model (~$0.08 per 1000 lookups at $0.10/$0.50 per 1M tokens),
+    // ~1.8s median. Benchmarked 2026-11-22 (scripts/bench-lookup.ts): gpt-4.1-mini was ~0.45s
+    // faster but 3.5x the price and deprecated; gpt-5.6-luna ~1.6s at ~$0.18/1000.
+    const model = override?.model ?? get(env, 'OPENAI_MODEL') ?? 'gpt-6-luna'
     // gpt-4* models are non-reasoning and reject the reasoning_effort parameter.
     const reasoning = /^gpt-4/.test(model) ? {}
       // "none" skips reasoning tokens entirely: lowest latency for a short dictionary answer.
