@@ -1,5 +1,7 @@
 import 'foliate-js/view.js'
 import { createTOCView } from 'foliate-js/ui/tree.js'
+import { watchSelection } from './selection'
+import { LookupUI } from './lookup-ui'
 import type { Contributor, FoliateView, LanguageMap, LoadDetail, RelocateDetail } from './types'
 
 // CSS injected into each book section (adapted from foliate-js reader.js).
@@ -37,6 +39,8 @@ const formatContributor = (c?: Contributor): string => {
   return Array.isArray(c) ? c.map(one).join(', ') : one(c)
 }
 
+const lookup = new LookupUI()
+
 const percent = new Intl.NumberFormat('zh-CN', { style: 'percent' })
 
 // Remember last reading position per book (per-browser convenience only).
@@ -73,6 +77,8 @@ export async function openBook(file: File | string): Promise<Reader> {
   const title = formatLang(book.metadata?.title) || fileName.replace(/\.epub$/i, '')
   const author = formatContributor(book.metadata?.author)
   const key = posKey(title, author)
+  const rawLang = book.metadata?.language
+  const lang = (Array.isArray(rawLang) ? rawLang[0] : rawLang) ?? ''
 
   document.title = title
   $('#book-title').textContent = title
@@ -97,6 +103,8 @@ export async function openBook(file: File | string): Promise<Reader> {
 
   const onKey = (e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement) return
+    // Leave modified arrows (e.g. Shift+Arrow to extend a selection) to the browser.
+    if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') view.goLeft()
     else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') view.goRight()
     else return
@@ -108,6 +116,8 @@ export async function openBook(file: File | string): Promise<Reader> {
   view.addEventListener('load', (e) => {
     const { doc } = (e as CustomEvent<LoadDetail>).detail
     doc.addEventListener('keydown', onKey, { signal })
+    doc.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') lookup.hide() }, { signal })
+    watchSelection(doc, lang, (info) => lookup.onSelection(info), signal)
   }, { signal })
 
   // ---- progress ----
@@ -129,7 +139,7 @@ export async function openBook(file: File | string): Promise<Reader> {
   const sidebar = $('#sidebar')
   const dim = $('#dim')
   const tocNav = $('#toc')
-  const openSidebar = () => { sidebar.classList.add('show'); sidebar.ariaHidden = 'false'; dim.hidden = false }
+  const openSidebar = () => { lookup.hide(); sidebar.classList.add('show'); sidebar.ariaHidden = 'false'; dim.hidden = false }
   const closeSidebar = () => { sidebar.classList.remove('show'); sidebar.ariaHidden = 'true'; dim.hidden = true }
   let tocView: ReturnType<typeof createTOCView> | null = null
   tocNav.replaceChildren()
@@ -146,6 +156,7 @@ export async function openBook(file: File | string): Promise<Reader> {
 
   view.addEventListener('relocate', (e) => {
     const { fraction, location, tocItem, pageItem, cfi } = (e as CustomEvent<RelocateDetail>).detail
+    lookup.hide()
     slider.value = String(fraction)
     const where = pageItem?.label ? `第 ${pageItem.label} 页`
       : location ? `位置 ${location.current + 1}/${location.total}` : ''
@@ -161,6 +172,7 @@ export async function openBook(file: File | string): Promise<Reader> {
     view,
     destroy() {
       ac.abort()
+      lookup.hide()
       closeSidebar()
       view.close()
       view.remove()

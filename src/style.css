@@ -173,6 +173,54 @@ foliate-view { display: block; width: 100%; height: 100%; }
 }
 #toc [aria-expanded="false"] > svg { transform: rotate(-90deg); }
 
+/* ---- lookup ---- */
+.lookup-btn {
+  position: fixed;
+  z-index: 20;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.lookup-btn:hover { filter: brightness(1.1); }
+
+.lookup-panel {
+  position: fixed;
+  z-index: 20;
+  width: min(360px, calc(100vw - 16px));
+  max-height: min(60vh, 420px);
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+.lookup-head { display: flex; align-items: flex-start; gap: 8px; }
+.lookup-word { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.lookup-close {
+  flex: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 4px;
+  color: var(--muted);
+}
+.lookup-close:hover { color: var(--fg); }
+.lookup-context {
+  margin: 6px 0 10px;
+  padding-left: 8px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+}
+.lookup-context mark { background: none; color: var(--fg); font-weight: 600; }
+.lookup-body { font-size: 14px; }
+
 @media (max-width: 600px) {
   .nav-btn { width: 28px; font-size: 24px; }
 }
