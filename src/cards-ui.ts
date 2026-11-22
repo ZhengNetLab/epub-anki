@@ -2,6 +2,7 @@
 
 import { cards, type Card } from './cards'
 import { el, highlighted } from './dom'
+import { buildAnkiTsv, downloadText, exportFilename } from './export'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
 
@@ -14,6 +15,7 @@ export function initCardsUI() {
   const title = $('#cards-title')
   const warning = $('#cards-warning')
   const toast = $('#cards-toast')
+  const exportBtn = $<HTMLButtonElement>('#cards-export')
 
   /** Card currently being edited (only one at a time). */
   let editing: string | null = null
@@ -34,6 +36,9 @@ export function initCardsUI() {
   button.addEventListener('click', open)
   dim.addEventListener('click', close)
   $('#cards-close').addEventListener('click', close)
+  exportBtn.addEventListener('click', () => {
+    if (cards.size) downloadText(exportFilename(), buildAnkiTsv(cards.list()))
+  })
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && drawer.classList.contains('show') && !editing) close()
   })
@@ -137,6 +142,7 @@ export function initCardsUI() {
     count.textContent = String(all.length)
     count.hidden = all.length === 0
     title.textContent = `卡片（${all.length}）`
+    exportBtn.disabled = all.length === 0
     warning.hidden = cards.persistent
     if (!all.length) {
       list.replaceChildren(el('li', 'cards-empty', '还没有卡片。查词后点「加入卡片」。'))

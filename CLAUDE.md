@@ -26,15 +26,18 @@
 - 查词请求带上：选中的词 + 所在句子 + 书的语言。返回 `LookupResult`：
   原形、音标、词性、语境中文释义、补充说明、整句翻译。前端按 词+句子 缓存（本次会话内）。
 - 卡片：正面 = 词语；背面 = 释义（HTML，可含原句）。
-- 导出格式（Anki 2.1.55+ 文件头）：
+- 导出（`src/export.ts`，抽屉里"导出到 Anki"按钮，文件 `anki-cards-YYYYMMDD-HHMM.txt`，UTF-8 无 BOM）：
   ```
   #separator:tab
   #html:true
   #notetype:Basic
   #deck:EPUB生词
-  词语<TAB>释义HTML
+  #tags column:3
+  正面<TAB>背面HTML<TAB>epub-anki 书名标签
   ```
-  字段内的制表符和换行必须转义（换行转 `<br>`，制表符转空格）。
+  所有字段 HTML 转义；换行转 `<br>`，制表符转空格；正面开头的 `#` 转 `&#35;`；
+  背面 HTML 的属性用单引号（字段里不出现裸双引号）。卡片按加入时间从旧到新输出。
+  已用官方 `anki` Python 包（26.09.4）的 `import_csv` 实测：自动识别全部设置，重复导入不会产生重复笔记。
 - 卡片列表暂存在 localStorage（键 `epub-anki:cards`），导出后不自动清空。
   `Card` = `LookupResult` 全部字段 + 正面 `word`、原句 `sentence`、`offset`、书名 `book`。
   可编辑字段：正面、释义、补充说明。同一 词+句子 不重复加入。
@@ -47,7 +50,7 @@
 3. [x] `/api/lookup` 接入 DeepSeek，显示释义（含加载中、出错重试）
 4. [x] "加入卡片" + 侧边卡片列表（可编辑/删除，删除可撤销）
    （`src/cards.ts` 卡片存储，`src/cards-ui.ts` 右侧抽屉；共用 DOM 工具在 `src/dom.ts`）
-5. [ ] 导出 TSV，并在 Anki 中实际导入验证
+5. [x] 导出 TSV，并在 Anki 中实际导入验证
 
 v1 不做：书库管理、同步、标注高亮、多格式支持之外的设置、AnkiConnect、.apkg。
 
