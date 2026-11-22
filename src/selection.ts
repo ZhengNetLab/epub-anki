@@ -8,6 +8,8 @@ export interface SelectionInfo {
   sentence: string
   /** Approximate index of the selection within `sentence` (to pick the right occurrence). */
   offset: number
+  /** Book language passed through for the lookup. */
+  lang: string
   /** Selection bounds in the top-level window's viewport coordinates. */
   rect: DOMRect
 }
@@ -74,7 +76,7 @@ export function readSelection(doc: Document, lang: string): SelectionInfo | null
   const rects = range.getClientRects()
   // Anchor to the first line box so multi-line selections place the popup sensibly.
   const r = rects.length ? rects[0] : range.getBoundingClientRect()
-  return { text, ...extractSentence(range, lang), rect: toTopRect(r, doc) }
+  return { text, ...extractSentence(range, lang), lang, rect: toTopRect(r, doc) }
 }
 
 /**

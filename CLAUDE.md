@@ -10,13 +10,17 @@
 - 前端：Vite + TypeScript，原生 DOM，不用框架。
 - EPUB 渲染：[foliate-js](https://github.com/johnfactotum/foliate-js)（MIT，npm 包 `foliate-js`）。
   通过 `<foliate-view>` 自定义元素使用；类型声明在 `src/foliate.d.ts`，只声明用到的部分。
-- AI：DeepSeek API（OpenAI 兼容接口），key 放在 `.env` 的 `DEEPSEEK_API_KEY`。
-  **key 只能在服务端读取**，前端通过 `/api/lookup` 调用，绝不把 key 打包进前端代码。
-  （计划用 Vite dev server 中间件或一个很小的 Node 服务实现，阶段 3 再定。）
+- AI：DeepSeek API（OpenAI 兼容 `/chat/completions`），默认模型 `deepseek-flash`，`reasoning_effort: low`，
+  JSON 输出模式。key 放在 `.env` 的 `DEEPSEEK_API_KEY`（可选 `DEEPSEEK_MODEL`、`DEEPSEEK_BASE_URL`）。
+  **key 只能在服务端读取**：`server/lookup.ts` 由 `vite.config.ts` 里的插件挂到 dev/preview 服务器的
+  `POST /api/lookup`，前端绝不接触 key。接口要求 `application/json` 且同源，防止其他网页盗刷。
+  请求/返回类型在 `src/lookup-types.ts`（前后端共用）。
+  注意：DeepSeek 的模型名会变，换模型前先 `GET https://api.deepseek.com/models` 确认。
 
 ## 功能约定
 
-- 查词请求带上：选中的词 + 所在句子 + 书的语言。返回：简明释义（中文）、词性、语境例句。
+- 查词请求带上：选中的词 + 所在句子 + 书的语言。返回 `LookupResult`：
+  原形、音标、词性、语境中文释义、补充说明、整句翻译。前端按 词+句子 缓存（本次会话内）。
 - 卡片：正面 = 词语；背面 = 释义（HTML，可含原句）。
 - 导出格式（Anki 2.1.55+ 文件头）：
   ```
@@ -34,7 +38,7 @@
 1. [x] 打开本地 EPUB，翻页、目录、进度
 2. [x] 在书页 iframe 中监听选区，弹出"查词"浮动菜单
    （`src/selection.ts` 取词+所在句子；`src/lookup-ui.ts` 浮动按钮和释义面板，阶段 3 替换面板正文）
-3. [ ] `/api/lookup` 接入 DeepSeek，显示释义
+3. [x] `/api/lookup` 接入 DeepSeek，显示释义（含加载中、出错重试）
 4. [ ] "加入卡片" + 侧边卡片列表（可编辑/删除）
 5. [ ] 导出 TSV，并在 Anki 中实际导入验证
 

@@ -211,15 +211,22 @@ foliate-view { display: block; width: 100%; height: 100%; }
   color: var(--muted);
 }
 .lookup-close:hover { color: var(--fg); }
+.lookup-meta { margin-top: 2px; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+.lookup-meta b { color: var(--fg); font-weight: 600; }
+.lookup-body { margin: 10px 0; font-size: 14px; }
+.lookup-meaning { font-size: 15px; }
+.lookup-note { margin-top: 6px; color: var(--muted); font-size: 13px; }
+.lookup-status { color: var(--muted); }
+.lookup-error { color: #d33; margin-bottom: 8px; }
 .lookup-context {
-  margin: 6px 0 10px;
   padding-left: 8px;
   border-left: 3px solid var(--border);
   color: var(--muted);
   font-size: 13px;
 }
+.lookup-context p { margin: 0; }
+.lookup-context p + p { margin-top: 4px; }
 .lookup-context mark { background: none; color: var(--fg); font-weight: 600; }
-.lookup-body { font-size: 14px; }
 
 @media (max-width: 600px) {
   .nav-btn { width: 28px; font-size: 24px; }
