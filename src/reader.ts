@@ -81,6 +81,7 @@ export async function openBook(file: File | string): Promise<Reader> {
   const lang = (Array.isArray(rawLang) ? rawLang[0] : rawLang) ?? ''
 
   document.title = title
+  lookup.setBook(title)
   $('#book-title').textContent = title
   $('#sidebar-title').textContent = title
   $('#sidebar-author').textContent = author
@@ -102,7 +103,8 @@ export async function openBook(file: File | string): Promise<Reader> {
   nextBtn.addEventListener('click', () => view.goRight(), { signal })
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement) return
+    // Don't steal keys from form fields (e.g. editing a card).
+    if ((e.target as Element | null)?.closest?.('input, textarea, select, [contenteditable]')) return
     // Leave modified arrows (e.g. Shift+Arrow to extend a selection) to the browser.
     if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') view.goLeft()

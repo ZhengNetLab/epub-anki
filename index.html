@@ -9,6 +9,7 @@
     <header id="topbar">
       <button id="toc-button" class="icon-btn" title="目录" disabled>☰</button>
       <div id="book-title">EPUB 阅读器</div>
+      <button id="cards-button" class="text-btn" title="卡片列表">卡片 <span id="cards-count" class="badge" hidden>0</span></button>
       <button id="open-button" class="text-btn">打开 EPUB</button>
       <input id="file-input" type="file" accept=".epub,application/epub+zip" hidden />
     </header>
@@ -39,6 +40,17 @@
         </div>
       </div>
       <nav id="toc"></nav>
+    </aside>
+
+    <div id="cards-dim" class="dim" hidden></div>
+    <aside id="cards-drawer" aria-hidden="true">
+      <div id="cards-head">
+        <div id="cards-title">卡片</div>
+        <button id="cards-close" class="icon-btn" title="关闭">×</button>
+      </div>
+      <p id="cards-warning" hidden>浏览器存储不可用：卡片只保存到关闭页面为止。</p>
+      <ul id="cards-list"></ul>
+      <div id="cards-toast" hidden></div>
     </aside>
 
     <script type="module" src="/src/main.ts"></script>

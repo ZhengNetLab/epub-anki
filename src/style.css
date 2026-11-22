@@ -116,7 +116,7 @@ foliate-view { display: block; width: 100%; height: 100%; }
   font-size: 12px;
 }
 
-#dim {
+#dim, .dim {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.3);
@@ -173,6 +173,30 @@ foliate-view { display: block; width: 100%; height: 100%; }
 }
 #toc [aria-expanded="false"] > svg { transform: rotate(-90deg); }
 
+.primary-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+}
+.primary-btn:not(:disabled):hover { filter: brightness(1.1); }
+.primary-btn:disabled { background: var(--hover); color: var(--muted); opacity: 1; }
+.link-btn { background: none; border: none; padding: 0 4px; color: var(--accent); font-size: 13px; }
+.link-btn:hover { text-decoration: underline; }
+.link-btn.danger { color: #d33; }
+.badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
 /* ---- lookup ---- */
 .lookup-btn {
   position: fixed;
@@ -227,6 +251,67 @@ foliate-view { display: block; width: 100%; height: 100%; }
 .lookup-context p { margin: 0; }
 .lookup-context p + p { margin-top: 4px; }
 .lookup-context mark { background: none; color: var(--fg); font-weight: 600; }
+.lookup-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+/* ---- cards drawer ---- */
+#cards-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(400px, 92vw);
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+}
+#cards-drawer.show { transform: none; }
+#cards-head {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+#cards-title { flex: 1; font-weight: 600; }
+#cards-warning { margin: 0; padding: 8px 16px; background: rgba(221, 51, 51, 0.12); color: #d33; font-size: 13px; }
+#cards-list { flex: 1; overflow: auto; list-style: none; margin: 0; padding: 0; }
+.cards-empty { padding: 32px 16px; color: var(--muted); text-align: center; }
+.card-item { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.card-front { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.card-word { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.card-meta { color: var(--muted); font-size: 12px; white-space: pre; }
+.card-meaning { margin-top: 4px; }
+.card-note { margin-top: 2px; color: var(--muted); font-size: 13px; }
+.card-sentence { margin: 6px 0 0; padding-left: 8px; border-left: 3px solid var(--border); color: var(--muted); font-size: 12px; }
+.card-sentence mark { background: none; color: var(--fg); font-weight: 600; }
+.card-foot { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.card-book { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.card-field { display: block; margin-bottom: 8px; }
+.card-field span { display: block; margin-bottom: 2px; color: var(--muted); font-size: 12px; }
+.card-field input, .card-field textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  resize: vertical;
+}
+.card-field input:focus, .card-field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.card-edit-actions { display: flex; justify-content: flex-end; gap: 8px; }
+#cards-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
 
 @media (max-width: 600px) {
   .nav-btn { width: 28px; font-size: 24px; }

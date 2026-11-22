@@ -1,5 +1,8 @@
 import './style.css'
 import { openBook, type Reader } from './reader'
+import { initCardsUI } from './cards-ui'
+
+initCardsUI()
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => {
   const el = document.querySelector<T>(sel)

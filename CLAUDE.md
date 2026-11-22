@@ -35,7 +35,9 @@
   词语<TAB>释义HTML
   ```
   字段内的制表符和换行必须转义（换行转 `<br>`，制表符转空格）。
-- 卡片列表暂存在 localStorage，导出后不自动清空。
+- 卡片列表暂存在 localStorage（键 `epub-anki:cards`），导出后不自动清空。
+  `Card` = `LookupResult` 全部字段 + 正面 `word`、原句 `sentence`、`offset`、书名 `book`。
+  可编辑字段：正面、释义、补充说明。同一 词+句子 不重复加入。
 
 ## 开发阶段
 
@@ -43,7 +45,8 @@
 2. [x] 在书页 iframe 中监听选区，弹出"查词"浮动菜单
    （`src/selection.ts` 取词+所在句子；`src/lookup-ui.ts` 浮动按钮和释义面板，阶段 3 替换面板正文）
 3. [x] `/api/lookup` 接入 DeepSeek，显示释义（含加载中、出错重试）
-4. [ ] "加入卡片" + 侧边卡片列表（可编辑/删除）
+4. [x] "加入卡片" + 侧边卡片列表（可编辑/删除，删除可撤销）
+   （`src/cards.ts` 卡片存储，`src/cards-ui.ts` 右侧抽屉；共用 DOM 工具在 `src/dom.ts`）
 5. [ ] 导出 TSV，并在 Anki 中实际导入验证
 
 v1 不做：书库管理、同步、标注高亮、多格式支持之外的设置、AnkiConnect、.apkg。

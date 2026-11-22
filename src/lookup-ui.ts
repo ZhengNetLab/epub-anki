@@ -3,32 +3,10 @@
 import type { SelectionInfo } from './selection'
 import type { LookupResult } from './lookup-types'
 import { lookupWord } from './lookup-client'
+import { el, highlighted } from './dom'
+import { cards } from './cards'
 
 const MARGIN = 8
-
-const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
-  const e = document.createElement(tag)
-  if (cls) e.className = cls
-  if (text !== undefined) e.textContent = text
-  return e
-}
-
-/** Render `sentence` with the occurrence of `word` nearest `hint` wrapped in <mark>. */
-function highlighted(sentence: string, word: string, hint: number): DocumentFragment {
-  const frag = document.createDocumentFragment()
-  const hay = sentence.toLowerCase()
-  const needle = word.toLowerCase()
-  let i = -1
-  for (let j = hay.indexOf(needle); j >= 0; j = hay.indexOf(needle, j + 1))
-    if (i < 0 || Math.abs(j - hint) < Math.abs(i - hint)) i = j
-  if (i < 0) {
-    frag.append(sentence)
-    return frag
-  }
-  frag.append(sentence.slice(0, i), el('mark', undefined, sentence.slice(i, i + word.length)),
-    sentence.slice(i + word.length))
-  return frag
-}
 
 /** Position `box` near `anchor` (viewport coords), preferring `prefer` side, clamped to the viewport. */
 function place(box: HTMLElement, anchor: DOMRect, prefer: 'above' | 'below') {
@@ -52,6 +30,7 @@ export class LookupUI {
   #current: SelectionInfo | null = null
   /** Incremented per lookup; stale responses are ignored. */
   #request = 0
+  #book = ''
 
   constructor() {
     this.#button.hidden = true
@@ -83,6 +62,11 @@ export class LookupUI {
     this.#panel.hidden = true
     this.#button.hidden = false
     place(this.#button, info.rect, 'above')
+  }
+
+  /** Title of the open book, stored on cards. */
+  setBook(title: string) {
+    this.#book = title
   }
 
   hide() {
@@ -145,5 +129,20 @@ export class LookupUI {
     body.replaceChildren(el('div', 'lookup-meaning', r.meaning))
     if (r.note) body.append(el('div', 'lookup-note', r.note))
     if (r.translation) context.append(el('p', 'lookup-translation', r.translation))
+
+    const add = el('button', 'primary-btn')
+    const sync = () => {
+      const added = cards.has(info.text, info.sentence)
+      add.textContent = added ? '✓ 已加入卡片' : '加入卡片'
+      add.disabled = added
+    }
+    sync()
+    add.addEventListener('click', () => {
+      cards.add({ ...r, word: info.text, sentence: info.sentence, offset: info.offset, book: this.#book })
+      sync()
+    })
+    const actions = el('div', 'lookup-actions')
+    actions.append(add)
+    context.after(actions)
   }
 }
