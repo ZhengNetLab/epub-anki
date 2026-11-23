@@ -171,11 +171,14 @@ export class LookupUI {
 
     // Card front is the dictionary form (e.g. sieht → aussehen); keep the selected form too.
     const front = r.lemma || info.text
+    // Duplicate rule: same front in the same book (back doesn't matter).
+    const key = this.#book.id ?? `title:${this.#book.title}`
     const add = el('button', 'primary-btn')
     const sync = () => {
-      const added = cards.has(info.text, info.sentence)
-      add.textContent = added ? '✓ 已加入卡片' : `加入卡片：${front}`
-      add.disabled = added
+      const existing = cards.findFront(key, front)
+      add.textContent = existing ? `✓ 本书已有「${existing.word}」` : `加入卡片：${front}`
+      add.title = existing ? '这本书里已有同样正面的卡片（不论背面是否相同）' : ''
+      add.disabled = !!existing
     }
     sync()
     add.addEventListener('click', () => {

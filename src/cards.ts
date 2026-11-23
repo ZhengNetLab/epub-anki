@@ -40,8 +40,15 @@ const KEY = 'epub-anki:cards'
 /** The form that appears in the sentence (selected text; older cards: the front). */
 export const selectedText = (c: { word: string; selected?: string }) => c.selected ?? c.word
 
-const sameEntry = (a: { word: string; selected?: string; sentence: string }, b: { selected: string; sentence: string }) =>
-  selectedText(a).toLowerCase() === b.selected.toLowerCase() && a.sentence === b.sentence
+/** Fronts compare case-insensitively, ignoring surrounding/repeated whitespace. */
+export const normFront = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase()
+
+/**
+ * Duplicate rule: within one book, cards with the same front are duplicates (the back
+ * doesn't matter); different books never affect each other.
+ */
+const sameCard = (a: { word: string; bookId?: string; book: string }, key: string, front: string) =>
+  bookKey(a) === key && normFront(a.word) === normFront(front)
 
 class CardStore extends EventTarget {
   #cards: Card[] = []
@@ -85,9 +92,22 @@ class CardStore extends EventTarget {
     return [...map.values()]
   }
 
-  /** Whether this selection (as selected in the book) in this sentence is already a card. */
-  has(selected: string, sentence: string) {
-    return this.#cards.some((c) => sameEntry(c, { selected, sentence }))
+  /** The card in this book with this front, if any. `exceptId` skips the card being edited. */
+  findFront(key: string, front: string, exceptId?: string): Card | undefined {
+    return this.#cards.find((c) => c.id !== exceptId && sameCard(c, key, front))
+  }
+
+  /** Ids of cards whose front repeats an older card's front in the same book (from
+   *  before this rule existed); the oldest card of each front is not included. */
+  duplicateIds(): Set<string> {
+    const seen = new Set<string>()
+    const dupes = new Set<string>()
+    for (const c of [...this.#cards].reverse()) {
+      const k = `${bookKey(c)}\u0000${normFront(c.word)}`
+      if (seen.has(k)) dupes.add(c.id)
+      else seen.add(k)
+    }
+    return dupes
   }
 
   /** Attach library ids to older cards that only recorded the book title. */
@@ -105,7 +125,7 @@ class CardStore extends EventTarget {
   }
 
   add(input: CardInput): Card {
-    const existing = this.#cards.find((c) => sameEntry(c, { selected: selectedText(input), sentence: input.sentence }))
+    const existing = this.findFront(bookKey(input), input.word)
     if (existing) return existing
     const id = crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
     const card: Card = { ...input, id, createdAt: Date.now() }

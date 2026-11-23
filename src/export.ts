@@ -4,7 +4,7 @@
 // Each book gets its own sub-deck (EPUB生词::<title>) via a per-row deck column, so
 // one file can hold several books (verified with Anki 26.09's importer).
 
-import { selectedText, type Card } from './cards'
+import { normFront, selectedText, type Card } from './cards'
 import { findNear } from './dom'
 
 export const DECK = 'EPUB生词'
@@ -51,6 +51,27 @@ export function cardBack(c: Card): string {
 /** Anki tags can't contain spaces; keep letters/digits (any script), '-', '_'. */
 const tag = (s: string) => s.trim().replace(/\s+/g, '_').replace(/[^\p{L}\p{N}_-]/gu, '').slice(0, 60)
 
+/** 53-bit string hash (cyrb53), as hex. */
+function hash(s: string): string {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i)
+    h1 = Math.imul(h1 ^ ch, 2654435761)
+    h2 = Math.imul(h2 ^ ch, 1597334677)
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(14, '0')
+}
+
+/**
+ * Anki note GUID: one per (deck, front). Anki matches notes by GUID before anything else,
+ * so the same front in two books (two decks) stays two notes, and re-exporting a book
+ * updates its existing notes instead of adding copies. (Anki's own duplicate check
+ * compares fronts across all decks, and no file header can limit it to one deck.)
+ */
+export const cardGuid = (c: Card) => `ea-${hash(`${deckName(c.book)}\u0000${normFront(c.word)}`)}`
+
 export function buildAnkiTsv(cards: readonly Card[]): string {
   const lines = [
     '#separator:tab',
@@ -58,13 +79,19 @@ export function buildAnkiTsv(cards: readonly Card[]): string {
     '#notetype:Basic',
     '#tags column:3',
     '#deck column:4',
+    '#guid column:5',
   ]
-  // Oldest first, so Anki's "new card" order follows reading order.
+  const seen = new Set<string>()
+  // Oldest first, so Anki's "new card" order follows reading order. Of cards sharing a
+  // front in one book (only possible from before the duplicate rule), the oldest wins.
   for (const c of [...cards].reverse()) {
+    const guid = cardGuid(c)
+    if (seen.has(guid)) continue
+    seen.add(guid)
     // A leading '#' would look like a header/comment line to Anki.
     const front = field(escapeHtml(c.word)).replace(/^#/, '&#35;')
     const tags = ['epub-anki', c.book ? tag(c.book) : ''].filter(Boolean).join(' ')
-    lines.push([front, field(cardBack(c)), tags, deckName(c.book)].join('\t'))
+    lines.push([front, field(cardBack(c)), tags, deckName(c.book), guid].join('\t'))
   }
   return lines.join('\n') + '\n'
 }

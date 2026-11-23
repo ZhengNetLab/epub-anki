@@ -581,3 +581,6 @@ foliate-view { display: block; width: 100%; height: 100%; }
 .settings-check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
 .settings-check span { display: block; }
 .settings-check small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.card-dupe { flex: 1; min-width: 0; color: #c77a00; font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.card-field-error { display: block; min-height: 0; color: #d33; font-size: 12px; margin-top: 2px; }
+.card-field-error:empty { display: none; }

@@ -85,8 +85,13 @@
   #notetype:Basic
   #tags column:3
   #deck column:4
-  正面<TAB>背面HTML<TAB>epub-anki 书名标签<TAB>EPUB生词::书名
+  #guid column:5
+  正面<TAB>背面HTML<TAB>epub-anki 书名标签<TAB>EPUB生词::书名<TAB>ea-<hash>
   ```
+  **GUID = hash(牌组名 + 正面小写)**（`cardGuid()`）：Anki 导入时先按 GUID 匹配，所以不同书的同一正面是两条笔记，
+  同一本书重新导出会更新已有笔记（不新增）。Anki 自带的重复判断是按正面跨所有牌组比较，且**没有文件头能改成只在本牌组内比较**
+  （`#match scope:` 不被识别，已用 anki 26.09.4 验证），所以必须用 GUID。
+  代价：用旧版（无 GUID）导出并已导入 Anki 的卡片，用新版再导入一次会在同一牌组多出一份，需在 Anki 里手动删一次。
   每行自带牌组（`deckName()`）：每本书一个子牌组 `EPUB生词::书名`，同一个文件可含多本书。
   牌组列是纯文本（不做 HTML 转义，`&` 原样保留）；书名里的 `::` 替换为 `:`，避免多出一层子牌组。
   扩展名用 `.tsv`：AnkiMobile 不接受 `.txt` 文本导入。
@@ -94,9 +99,12 @@
   背面 HTML 的属性用单引号（字段里不出现裸双引号）。卡片按加入时间从旧到新输出。
   已用官方 `anki` Python 包（26.09.4）的 `import_csv` 实测：自动识别全部设置（含牌组列），
   每本书进各自子牌组，重复导入不会产生重复笔记。
+- **重复规则：同一本书里正面相同即重复（不论背面），不同书互不影响。**（`cards.findFront(bookKey, front)`，正面比较忽略大小写和多余空格）
+  查词面板里若本书已有同样正面，按钮显示"✓ 本书已有「…」"并禁用；编辑卡片把正面改成本书已有的也会被拒绝。
+  此规则之前留下的重复卡片在抽屉里标"重复"，导出时只保留最早的一张。
 - 卡片列表存在 localStorage（键 `epub-anki:cards`），导出后不自动清空。
   `Card` = `LookupResult` 全部字段 + 正面 `word`、选中原文 `selected`、原句 `sentence`、`offset`、书名 `book`、`bookId`。
-  可编辑字段：正面、释义、补充说明。同一 词+句子 不重复加入。
+  可编辑字段：正面、释义、补充说明。
 - 桌面选词：`watchSelection` 在 pointerup 后 10ms 报告选区；之后异步到达的 selectionchange 不得取消这次
   快速报告（否则"查词"按钮要等 300ms 才出现）。`LookupUI.onSelection` 对同一选区的重复报告不关闭已打开的面板。
 
@@ -141,6 +149,7 @@
 10. [x] 卡片按书分开，每本书导出到各自的 Anki 子牌组（EPUB生词::书名）
 11. [x] 卡片清空（确认 + 撤销）；设置里可选"选词后自动查词"
 12. [x] 卡片正面用词典原形（含可分动词 sieht…aus → aussehen）
+13. [x] 重复 = 同一本书内正面相同；导出带 GUID，Anki 里各书互不影响、重导出只更新
 
 ## 命令
 

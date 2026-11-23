@@ -2,7 +2,7 @@
 // While a book is open it shows only that book's cards and exports them to the book's
 // own Anki deck; in the library it shows every card grouped by book.
 
-import { cards, selectedText, type Card, type CardGroup } from './cards'
+import { bookKey, cards, selectedText, type Card, type CardGroup } from './cards'
 import { confirmDialog, el, highlighted } from './dom'
 import { buildAnkiTsv, deckName, downloadText, exportFilename } from './export'
 
@@ -35,6 +35,8 @@ export function initCardsUI(): CardsUI {
   let scope: CardsScope | null = null
   /** Card currently being edited (only one at a time). */
   let editing: string | null = null
+  /** Cards repeating an older card's front in the same book (made before the duplicate rule). */
+  let dupes = new Set<string>()
   let toastTimer: number | undefined
 
   const open = () => {
@@ -101,7 +103,11 @@ export function initCardsUI(): CardsUI {
       li.append(p)
     }
     const foot = el('div', 'card-foot')
-    foot.append(el('span', 'spacer'))
+    if (dupes.has(c.id)) {
+      const tag = el('span', 'card-dupe', '重复：本书已有同样正面，导出时跳过')
+      tag.title = '同一本书里正面相同即视为重复（不论背面）。可以删掉这张，或编辑正面。'
+      foot.append(tag)
+    } else foot.append(el('span', 'spacer'))
     const edit = el('button', 'link-btn', '编辑')
     edit.addEventListener('click', () => {
       editing = c.id
@@ -123,8 +129,10 @@ export function initCardsUI(): CardsUI {
     const input = multiline ? el('textarea') : el('input')
     input.value = value
     if (input instanceof HTMLTextAreaElement) input.rows = 2
-    wrap.append(input)
-    return { wrap, input }
+    const error = el('small', 'card-field-error')
+    input.addEventListener('input', () => { error.textContent = '' })
+    wrap.append(input, error)
+    return { wrap, input, error }
   }
 
   const editItem = (c: Card) => {
@@ -150,6 +158,13 @@ export function initCardsUI(): CardsUI {
       e.preventDefault()
       const w = word.input.value.trim()
       if (!w) {
+        word.input.focus()
+        return
+      }
+      // Same front in the same book = duplicate (whatever the back says).
+      const clash = cards.findFront(bookKey(c), w, c.id)
+      if (clash) {
+        word.error.textContent = `本书已有正面为「${clash.word}」的卡片`
         word.input.focus()
         return
       }
@@ -185,6 +200,7 @@ export function initCardsUI(): CardsUI {
   }
 
   function render() {
+    dupes = cards.duplicateIds()
     warning.hidden = cards.persistent
     if (scope) {
       const mine = cards.forBook(scope.key)
