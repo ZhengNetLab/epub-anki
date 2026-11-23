@@ -169,16 +169,18 @@ export class LookupUI {
     if (r.note) body.append(el('div', 'lookup-note', r.note))
     if (r.translation) context.append(el('p', 'lookup-translation', r.translation))
 
+    // Card front is the dictionary form (e.g. sieht → aussehen); keep the selected form too.
+    const front = r.lemma || info.text
     const add = el('button', 'primary-btn')
     const sync = () => {
       const added = cards.has(info.text, info.sentence)
-      add.textContent = added ? '✓ 已加入卡片' : '加入卡片'
+      add.textContent = added ? '✓ 已加入卡片' : `加入卡片：${front}`
       add.disabled = added
     }
     sync()
     add.addEventListener('click', () => {
       cards.add({
-        ...r, word: info.text, sentence: info.sentence, offset: info.offset,
+        ...r, word: front, selected: info.text, sentence: info.sentence, offset: info.offset,
         book: this.#book.title, bookId: this.#book.id,
       })
       sync()

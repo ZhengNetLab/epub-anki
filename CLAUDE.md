@@ -67,7 +67,11 @@
 
 - 查词请求带上：选中的词 + 所在句子 + 书的语言。返回 `LookupResult`：
   原形、音标、词性、语境中文释义、补充说明、整句翻译。前端按 服务商+模型+词+句子 缓存（本次会话内）。
-- 卡片：正面 = 词语；背面 = 释义（HTML，可含原句）。
+- 卡片：**正面 = 词典原形**（查词结果的 `lemma`，如 sieht → aussehen、gave…up → give up），可编辑；
+  选中时的原文另存 `selected`，用于在例句里加粗和判断重复（旧卡片无 `selected`，用 `word`，见 `selectedText()`）。
+  背面 = 释义（HTML，可含原句，原句里加粗的是选中的原文）。
+- 提示词（`src/ai.ts`）明确要求：可分动词/短语动词若句中有分离的前缀或小品词，lemma 给完整词条；
+  否则只还原屈折变化。改提示词或换模型后跑 `node scripts/check-lemmas.ts` 回归（12 个德/英例句）。
 - **卡片按书分开**：每张卡片带 `bookId`（书库 id）；`bookKey(card)` = `bookId`，没有时用 `title:<书名>`。
   - 阅读时 卡片 抽屉只显示本书卡片（`cardsUI.setScope({ key, title })`），"导出到 Anki"只导出本书。
   - 书库里 setScope(null)：全部卡片按书分组，每组有自己的"导出"，顶部"全部导出"。
@@ -91,7 +95,7 @@
   已用官方 `anki` Python 包（26.09.4）的 `import_csv` 实测：自动识别全部设置（含牌组列），
   每本书进各自子牌组，重复导入不会产生重复笔记。
 - 卡片列表存在 localStorage（键 `epub-anki:cards`），导出后不自动清空。
-  `Card` = `LookupResult` 全部字段 + 正面 `word`、原句 `sentence`、`offset`、书名 `book`、`bookId`。
+  `Card` = `LookupResult` 全部字段 + 正面 `word`、选中原文 `selected`、原句 `sentence`、`offset`、书名 `book`、`bookId`。
   可编辑字段：正面、释义、补充说明。同一 词+句子 不重复加入。
 - 桌面选词：`watchSelection` 在 pointerup 后 10ms 报告选区；之后异步到达的 selectionchange 不得取消这次
   快速报告（否则"查词"按钮要等 300ms 才出现）。`LookupUI.onSelection` 对同一选区的重复报告不关闭已打开的面板。
@@ -136,6 +140,7 @@
 9. [x] 阅读设置（主题/纸张颜色/夜间、字号、字体、行距、页边距、翻页方式、两端对齐）
 10. [x] 卡片按书分开，每本书导出到各自的 Anki 子牌组（EPUB生词::书名）
 11. [x] 卡片清空（确认 + 撤销）；设置里可选"选词后自动查词"
+12. [x] 卡片正面用词典原形（含可分动词 sieht…aus → aussehen）
 
 ## 命令
 
@@ -143,6 +148,7 @@
 - `npm run typecheck`：类型检查
 - `npm run build`：构建；`npx vite preview` 预览构建结果（可测 service worker）
 - `node scripts/bench-lookup.ts [provider:model ...]`：实测各模型查词延迟（从 `.env` 读 key，会真实调用 API）
+- `node scripts/check-lemmas.ts [provider:model]`：检查卡片正面原形是否正确（可分动词、短语动词等）
 
 ## 注意
 

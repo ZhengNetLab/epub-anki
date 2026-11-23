@@ -4,7 +4,7 @@
 // Each book gets its own sub-deck (EPUB生词::<title>) via a per-row deck column, so
 // one file can hold several books (verified with Anki 26.09's importer).
 
-import type { Card } from './cards'
+import { selectedText, type Card } from './cards'
 import { findNear } from './dom'
 
 export const DECK = 'EPUB生词'
@@ -25,10 +25,12 @@ const field = (html: string) =>
 
 /** Sentence with the looked-up word in bold. */
 function sentenceHtml(c: Card): string {
-  const i = findNear(c.sentence, c.word, c.offset)
+  // Bold the form as it appears in the sentence (the front may be a lemma like aussehen).
+  const w = selectedText(c)
+  const i = findNear(c.sentence, w, c.offset)
   if (i < 0) return escapeHtml(c.sentence)
-  return escapeHtml(c.sentence.slice(0, i)) + '<b>' + escapeHtml(c.sentence.slice(i, i + c.word.length)) +
-    '</b>' + escapeHtml(c.sentence.slice(i + c.word.length))
+  return escapeHtml(c.sentence.slice(0, i)) + '<b>' + escapeHtml(c.sentence.slice(i, i + w.length)) +
+    '</b>' + escapeHtml(c.sentence.slice(i + w.length))
 }
 
 export function cardBack(c: Card): string {

@@ -2,7 +2,7 @@
 // While a book is open it shows only that book's cards and exports them to the book's
 // own Anki deck; in the library it shows every card grouped by book.
 
-import { cards, type Card, type CardGroup } from './cards'
+import { cards, selectedText, type Card, type CardGroup } from './cards'
 import { confirmDialog, el, highlighted } from './dom'
 import { buildAnkiTsv, deckName, downloadText, exportFilename } from './export'
 
@@ -97,7 +97,7 @@ export function initCardsUI(): CardsUI {
     if (c.note) li.append(el('div', 'card-note', c.note))
     if (c.sentence) {
       const p = el('p', 'card-sentence')
-      p.append(highlighted(c.sentence, c.word, c.offset))
+      p.append(highlighted(c.sentence, selectedText(c), c.offset))
       li.append(p)
     }
     const foot = el('div', 'card-foot')

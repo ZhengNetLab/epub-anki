@@ -5,8 +5,12 @@ import type { LookupResult } from './lookup-types'
 
 export interface Card extends LookupResult {
   id: string
-  /** Card front: the word as selected (editable). */
+  /** Card front: the dictionary form (lemma) from the lookup, editable. Older cards
+   *  (before lemma fronts) hold the selected text here and have no `selected`. */
   word: string
+  /** The text as selected in the book (e.g. "sieht" for front "aussehen"); used to
+   *  highlight it in the sentence and to detect duplicates. */
+  selected?: string
   /** Sentence the word was looked up in. */
   sentence: string
   /** Position of the word within `sentence`, for highlighting. */
@@ -33,8 +37,11 @@ export type CardPatch = Partial<Pick<Card, 'word' | 'meaning' | 'note'>>
 
 const KEY = 'epub-anki:cards'
 
-const sameEntry = (a: { word: string; sentence: string }, b: { word: string; sentence: string }) =>
-  a.word.toLowerCase() === b.word.toLowerCase() && a.sentence === b.sentence
+/** The form that appears in the sentence (selected text; older cards: the front). */
+export const selectedText = (c: { word: string; selected?: string }) => c.selected ?? c.word
+
+const sameEntry = (a: { word: string; selected?: string; sentence: string }, b: { selected: string; sentence: string }) =>
+  selectedText(a).toLowerCase() === b.selected.toLowerCase() && a.sentence === b.sentence
 
 class CardStore extends EventTarget {
   #cards: Card[] = []
@@ -78,8 +85,9 @@ class CardStore extends EventTarget {
     return [...map.values()]
   }
 
-  has(word: string, sentence: string) {
-    return this.#cards.some((c) => sameEntry(c, { word, sentence }))
+  /** Whether this selection (as selected in the book) in this sentence is already a card. */
+  has(selected: string, sentence: string) {
+    return this.#cards.some((c) => sameEntry(c, { selected, sentence }))
   }
 
   /** Attach library ids to older cards that only recorded the book title. */
@@ -97,7 +105,7 @@ class CardStore extends EventTarget {
   }
 
   add(input: CardInput): Card {
-    const existing = this.#cards.find((c) => sameEntry(c, input))
+    const existing = this.#cards.find((c) => sameEntry(c, { selected: selectedText(input), sentence: input.sentence }))
     if (existing) return existing
     const id = crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
     const card: Card = { ...input, id, createdAt: Date.now() }
