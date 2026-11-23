@@ -7,6 +7,25 @@ export const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, 
   return e
 }
 
+/** Modal yes/no dialog. Resolves true when the user confirms. */
+export function confirmDialog(message: string, confirmLabel: string, danger = true): Promise<boolean> {
+  return new Promise((resolve) => {
+    const d = el('dialog', 'confirm-dialog')
+    const cancel = el('button', 'text-btn', '取消')
+    const ok = el('button', danger ? 'primary-btn danger-btn' : 'primary-btn', confirmLabel)
+    const actions = el('div', 'settings-actions')
+    actions.append(el('span', 'spacer'), cancel, ok)
+    d.append(el('p', undefined, message), actions)
+    document.body.append(d)
+    let result = false
+    cancel.addEventListener('click', () => d.close())
+    ok.addEventListener('click', () => { result = true; d.close() })
+    d.addEventListener('close', () => { d.remove(); resolve(result) })
+    d.showModal()
+    cancel.focus()
+  })
+}
+
 /** Index of the occurrence of `word` in `sentence` nearest `hint` (case-insensitive), or -1. */
 export function findNear(sentence: string, word: string, hint: number): number {
   const hay = sentence.toLowerCase()

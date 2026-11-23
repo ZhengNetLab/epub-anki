@@ -574,3 +574,10 @@ foliate-view { display: block; width: 100%; height: 100%; }
 .card-group-title { font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .card-group-deck { color: var(--muted); font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .card-foot .spacer { flex: 1; }
+#cards-clear { font-size: 13px; color: #d33; border-color: transparent; padding: 4px 8px; }
+#cards-clear:disabled { color: var(--muted); }
+#cards-title { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.settings-check { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 10px; cursor: pointer; }
+.settings-check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.settings-check span { display: block; }
+.settings-check small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }

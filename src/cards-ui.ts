@@ -3,7 +3,7 @@
 // own Anki deck; in the library it shows every card grouped by book.
 
 import { cards, type Card, type CardGroup } from './cards'
-import { el, highlighted } from './dom'
+import { confirmDialog, el, highlighted } from './dom'
 import { buildAnkiTsv, deckName, downloadText, exportFilename } from './export'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
@@ -30,6 +30,7 @@ export function initCardsUI(): CardsUI {
   const warning = $('#cards-warning')
   const toast = $('#cards-toast')
   const exportBtn = $<HTMLButtonElement>('#cards-export')
+  const clearBtn = $<HTMLButtonElement>('#cards-clear')
 
   let scope: CardsScope | null = null
   /** Card currently being edited (only one at a time). */
@@ -59,18 +60,29 @@ export function initCardsUI(): CardsUI {
     if (scope) exportCards(cards.forBook(scope.key), scope.title)
     else exportCards(cards.list())
   })
+  clearBtn.addEventListener('click', async () => {
+    const n = scope ? cards.forBook(scope.key).length : cards.size
+    if (!n) return
+    const message = scope
+      ? `清空《${scope.title}》的 ${n} 张卡片？还没导出的卡片会丢失。`
+      : `清空全部 ${n} 张卡片（所有书）？还没导出的卡片会丢失。`
+    if (!(await confirmDialog(message, '清空'))) return
+    editing = null
+    const snapshot = cards.clear(scope ? scope.key : null)
+    showUndo(`已清空 ${n} 张卡片`, () => cards.restoreAll(snapshot))
+  })
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && drawer.classList.contains('show') && !editing) close()
+    if (e.key === 'Escape' && drawer.classList.contains('show') && !editing && !document.querySelector('dialog[open]')) close()
   })
 
-  const showUndo = (word: string, undo: () => void) => {
+  const showUndo = (message: string, undo: () => void) => {
     clearTimeout(toastTimer)
     const btn = el('button', 'link-btn', '撤销')
     btn.addEventListener('click', () => {
       undo()
       toast.hidden = true
     })
-    toast.replaceChildren(`已删除「${word}」`, btn)
+    toast.replaceChildren(message, btn)
     toast.hidden = false
     toastTimer = window.setTimeout(() => { toast.hidden = true }, 6000)
   }
@@ -98,7 +110,7 @@ export function initCardsUI(): CardsUI {
     const del = el('button', 'link-btn danger', '删除')
     del.addEventListener('click', () => {
       const removed = cards.remove(c.id)
-      if (removed) showUndo(c.word, () => cards.restore(removed))
+      if (removed) showUndo(`已删除「${c.word}」`, () => cards.restore(removed))
     })
     foot.append(edit, del)
     li.append(foot)
@@ -180,7 +192,8 @@ export function initCardsUI(): CardsUI {
       count.hidden = mine.length === 0
       title.textContent = `本书卡片（${mine.length}）`
       exportBtn.textContent = '导出到 Anki'
-      exportBtn.disabled = mine.length === 0
+      exportBtn.disabled = clearBtn.disabled = mine.length === 0
+      clearBtn.title = '删除本书的所有卡片'
       deckLine.textContent = `导出到牌组：${deckName(scope.title)}`
       deckLine.hidden = false
       list.replaceChildren(...(mine.length
@@ -194,7 +207,8 @@ export function initCardsUI(): CardsUI {
     count.hidden = total === 0
     title.textContent = `全部卡片（${total}）`
     exportBtn.textContent = '全部导出'
-    exportBtn.disabled = total === 0
+    exportBtn.disabled = clearBtn.disabled = total === 0
+    clearBtn.title = '删除所有书的全部卡片'
     deckLine.textContent = '每本书导出到各自的牌组（EPUB生词::书名）'
     deckLine.hidden = groups.length === 0
     list.replaceChildren(...(groups.length

@@ -128,6 +128,22 @@ class CardStore extends EventTarget {
     this.#changed()
   }
 
+  /** Remove one book's cards (or all cards when key is null); returns a snapshot to undo. */
+  clear(key: string | null): Card[] {
+    const before = this.#cards
+    this.#cards = key === null ? [] : before.filter((c) => bookKey(c) !== key)
+    if (this.#cards.length !== before.length) this.#changed()
+    return before
+  }
+
+  /** Undo clear(): put back the snapshot, keeping any cards added since. */
+  restoreAll(snapshot: Card[]) {
+    const ids = new Set(snapshot.map((c) => c.id))
+    const added = this.#cards.filter((c) => !ids.has(c.id))
+    this.#cards = [...added, ...snapshot]
+    this.#changed()
+  }
+
   #changed() {
     try {
       localStorage.setItem(KEY, JSON.stringify(this.#cards))

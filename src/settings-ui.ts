@@ -53,6 +53,13 @@ function build(): HTMLDialogElement {
   }
 
   const status = el('div', 'settings-status')
+  const auto = el('input')
+  auto.type = 'checkbox'
+  const autoRow = el('label', 'settings-check')
+  const autoText = el('span')
+  autoText.append('选词后自动查词', el('small', undefined, '关闭时，选词后先显示「查词」按钮，点一下才查（不会误查、更省额度）'))
+  autoRow.append(auto, autoText)
+
   const hint = el('p', 'settings-hint', 'API key 只保存在这台设备的浏览器里，查词时直接发送给所选的 AI 服务。')
 
   const test = el('button', 'text-btn', '测试')
@@ -65,7 +72,7 @@ function build(): HTMLDialogElement {
   actions.append(test, el('span', 'spacer'), cancel, save)
 
   form.append(head, row('AI 服务', providerSel), row('API key', keyRow), keyLink,
-    row('模型', modelInput, modelList), hint, status, actions)
+    row('模型', modelInput, modelList), autoRow, hint, status, actions)
   d.append(form)
 
   // Draft edits per provider so switching the dropdown doesn't lose typed keys.
@@ -115,11 +122,12 @@ function build(): HTMLDialogElement {
   cancel.addEventListener('click', () => d.close())
   form.addEventListener('submit', () => {
     capture()
-    settings.set({ ...draft, provider: current() })
+    settings.set({ ...draft, provider: current(), autoLookup: auto.checked })
   })
   d.addEventListener('settings-open', () => {
     const s = settings.get()
-    draft = { provider: s.provider, keys: { ...s.keys }, models: { ...s.models } }
+    draft = { provider: s.provider, keys: { ...s.keys }, models: { ...s.models }, autoLookup: s.autoLookup }
+    auto.checked = s.autoLookup
     providerSel.value = s.provider
     showProvider()
   })

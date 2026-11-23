@@ -16,6 +16,8 @@
 - AI（`src/ai.ts` 请求与解析，`src/providers.ts` 服务商配置）：OpenAI 或 DeepSeek，
   均走 OpenAI 兼容的 `/chat/completions` + JSON 输出模式，**由浏览器直接请求**（两家都允许 CORS）。
   - key、服务商、模型由用户在设置面板（`src/settings-ui.ts`）填写，存在本机 localStorage（`epub-anki:settings`）。
+  - 设置里"选词后自动查词"（`autoLookup`，默认关）：开启时 `LookupUI.onSelection` 直接打开释义面板并查询，
+    不显示"查词"按钮；同一选区的重复报告不会再查一次（只调用一次 API）。
   - OpenAI 默认 `gpt-6-luna`（最便宜，约 $0.08/千次查词，中位数约 1.8s；gpt-4.1-mini 快 0.45s 但贵 3.5 倍且已弃用）。
     推理模型（gpt-5+）发 `reasoning_effort: none`，gpt-4* 不发该参数；统一用 `max_completion_tokens`。
   - DeepSeek 默认 `deepseek-flash`，`reasoning_effort: low`。
@@ -70,6 +72,8 @@
   - 阅读时 卡片 抽屉只显示本书卡片（`cardsUI.setScope({ key, title })`），"导出到 Anki"只导出本书。
   - 书库里 setScope(null)：全部卡片按书分组，每组有自己的"导出"，顶部"全部导出"。
   - 旧卡片只有书名：书库每次列出时 `cards.linkLegacy(books)` 按书名补上 `bookId`。
+  - "清空"按钮跟随范围：阅读时清空本书，书库里清空全部。先弹确认框（`confirmDialog()`，`src/dom.ts`），
+    清空后底部提示可"撤销"（`cards.clear()` 返回快照，`restoreAll()` 还原并保留之后新加的卡片）。
 - 导出（`src/export.ts`，文件 `anki-<书名>-YYYYMMDD-HHMM.tsv`，全部导出为 `anki-cards-…tsv`，UTF-8 无 BOM）：
   ```
   #separator:tab
@@ -131,6 +135,7 @@
 8. [x] 书库首页（IndexedDB 存书、进度、返回手势）
 9. [x] 阅读设置（主题/纸张颜色/夜间、字号、字体、行距、页边距、翻页方式、两端对齐）
 10. [x] 卡片按书分开，每本书导出到各自的 Anki 子牌组（EPUB生词::书名）
+11. [x] 卡片清空（确认 + 撤销）；设置里可选"选词后自动查词"
 
 ## 命令
 

@@ -6,12 +6,14 @@ export interface Settings {
   provider: ProviderName
   keys: Partial<Record<ProviderName, string>>
   models: Partial<Record<ProviderName, string>>
+  /** Look a word up as soon as it's selected, instead of after tapping 查词. */
+  autoLookup: boolean
 }
 
 const KEY = 'epub-anki:settings'
 
 class SettingsStore extends EventTarget {
-  #s: Settings = { provider: 'openai', keys: {}, models: {} }
+  #s: Settings = { provider: 'openai', keys: {}, models: {}, autoLookup: false }
 
   constructor() {
     super()
@@ -22,6 +24,7 @@ class SettingsStore extends EventTarget {
         if (p.provider && p.provider in PROVIDERS) this.#s.provider = p.provider
         this.#s.keys = { ...p.keys }
         this.#s.models = { ...p.models }
+        this.#s.autoLookup = p.autoLookup === true
       }
     } catch { /* storage unavailable: defaults */ }
   }

@@ -4,6 +4,7 @@ import type { SelectionInfo } from './selection'
 import type { LookupResult } from './lookup-types'
 import { lookupWord, NoKeyError } from './lookup-client'
 import { openSettings } from './settings-ui'
+import { settings } from './settings'
 import { el, highlighted } from './dom'
 import { cards } from './cards'
 
@@ -74,6 +75,11 @@ export class LookupUI {
     const cur = this.#current
     if (!this.#panel.hidden && cur && cur.text === info.text && cur.sentence === info.sentence) return
     this.#current = info
+    // Auto mode: skip the 查词 button and look the word up straight away.
+    if (settings.get().autoLookup) {
+      this.#openPanel(info)
+      return
+    }
     this.#panel.hidden = true
     this.#button.hidden = false
     // Touch selection is our own (no native menu/handles); keep the button above the word,
