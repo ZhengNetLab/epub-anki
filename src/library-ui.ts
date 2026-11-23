@@ -14,7 +14,11 @@ export interface LibraryUI {
   addFiles(files: Iterable<File>): Promise<BookMeta[]>
 }
 
-export function initLibrary(onOpen: (meta: BookMeta) => void): LibraryUI {
+export function initLibrary(
+  onOpen: (meta: BookMeta) => void,
+  /** Called with the full book list whenever the library is (re)listed. */
+  onBooks?: (books: BookMeta[]) => void,
+): LibraryUI {
   const root = $('#library')
   const grid = $('#library-grid')
   const empty = $('#library-empty')
@@ -100,6 +104,7 @@ export function initLibrary(onOpen: (meta: BookMeta) => void): LibraryUI {
     }
     coverUrls.forEach((u) => URL.revokeObjectURL(u))
     coverUrls = []
+    onBooks?.(books)
     grid.replaceChildren(...books.map(card))
     empty.hidden = books.length > 0
   }

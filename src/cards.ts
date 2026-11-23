@@ -13,7 +13,19 @@ export interface Card extends LookupResult {
   offset: number
   /** Title of the book it came from. */
   book: string
+  /** Library id of that book. Missing on cards made before per-book lists (see linkLegacy). */
+  bookId?: string
   createdAt: number
+}
+
+/** Which book's list a card belongs to: its library id, or its title for unlinked cards. */
+export const bookKey = (c: { bookId?: string; book: string }) => c.bookId ?? `title:${c.book}`
+
+export interface CardGroup {
+  key: string
+  title: string
+  /** Newest first. */
+  cards: Card[]
 }
 
 export type CardInput = Omit<Card, 'id' | 'createdAt'>
@@ -49,8 +61,39 @@ class CardStore extends EventTarget {
     return this.#cards.length
   }
 
+  /** One book's cards, newest first. */
+  forBook(key: string): Card[] {
+    return this.#cards.filter((c) => bookKey(c) === key)
+  }
+
+  /** All cards grouped by book, books ordered by their newest card. */
+  groups(): CardGroup[] {
+    const map = new Map<string, CardGroup>()
+    for (const c of this.#cards) {
+      const key = bookKey(c)
+      let g = map.get(key)
+      if (!g) map.set(key, (g = { key, title: c.book || '未知书籍', cards: [] }))
+      g.cards.push(c)
+    }
+    return [...map.values()]
+  }
+
   has(word: string, sentence: string) {
     return this.#cards.some((c) => sameEntry(c, { word, sentence }))
+  }
+
+  /** Attach library ids to older cards that only recorded the book title. */
+  linkLegacy(books: ReadonlyArray<{ id: string; title: string }>) {
+    let changed = false
+    for (const c of this.#cards) {
+      if (c.bookId) continue
+      const match = books.find((b) => b.title === c.book)
+      if (match) {
+        c.bookId = match.id
+        changed = true
+      }
+    }
+    if (changed) this.#changed()
   }
 
   add(input: CardInput): Card {

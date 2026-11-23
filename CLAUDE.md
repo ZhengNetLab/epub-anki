@@ -66,22 +66,31 @@
 - 查词请求带上：选中的词 + 所在句子 + 书的语言。返回 `LookupResult`：
   原形、音标、词性、语境中文释义、补充说明、整句翻译。前端按 服务商+模型+词+句子 缓存（本次会话内）。
 - 卡片：正面 = 词语；背面 = 释义（HTML，可含原句）。
-- 导出（`src/export.ts`，抽屉里"导出到 Anki"按钮，文件 `anki-cards-YYYYMMDD-HHMM.tsv`，UTF-8 无 BOM）：
+- **卡片按书分开**：每张卡片带 `bookId`（书库 id）；`bookKey(card)` = `bookId`，没有时用 `title:<书名>`。
+  - 阅读时 卡片 抽屉只显示本书卡片（`cardsUI.setScope({ key, title })`），"导出到 Anki"只导出本书。
+  - 书库里 setScope(null)：全部卡片按书分组，每组有自己的"导出"，顶部"全部导出"。
+  - 旧卡片只有书名：书库每次列出时 `cards.linkLegacy(books)` 按书名补上 `bookId`。
+- 导出（`src/export.ts`，文件 `anki-<书名>-YYYYMMDD-HHMM.tsv`，全部导出为 `anki-cards-…tsv`，UTF-8 无 BOM）：
   ```
   #separator:tab
   #html:true
   #notetype:Basic
-  #deck:EPUB生词
   #tags column:3
-  正面<TAB>背面HTML<TAB>epub-anki 书名标签
+  #deck column:4
+  正面<TAB>背面HTML<TAB>epub-anki 书名标签<TAB>EPUB生词::书名
   ```
+  每行自带牌组（`deckName()`）：每本书一个子牌组 `EPUB生词::书名`，同一个文件可含多本书。
+  牌组列是纯文本（不做 HTML 转义，`&` 原样保留）；书名里的 `::` 替换为 `:`，避免多出一层子牌组。
   扩展名用 `.tsv`：AnkiMobile 不接受 `.txt` 文本导入。
   所有字段 HTML 转义；换行转 `<br>`，制表符转空格；正面开头的 `#` 转 `&#35;`；
   背面 HTML 的属性用单引号（字段里不出现裸双引号）。卡片按加入时间从旧到新输出。
-  已用官方 `anki` Python 包（26.09.4）的 `import_csv` 实测：自动识别全部设置，重复导入不会产生重复笔记。
+  已用官方 `anki` Python 包（26.09.4）的 `import_csv` 实测：自动识别全部设置（含牌组列），
+  每本书进各自子牌组，重复导入不会产生重复笔记。
 - 卡片列表存在 localStorage（键 `epub-anki:cards`），导出后不自动清空。
-  `Card` = `LookupResult` 全部字段 + 正面 `word`、原句 `sentence`、`offset`、书名 `book`。
+  `Card` = `LookupResult` 全部字段 + 正面 `word`、原句 `sentence`、`offset`、书名 `book`、`bookId`。
   可编辑字段：正面、释义、补充说明。同一 词+句子 不重复加入。
+- 桌面选词：`watchSelection` 在 pointerup 后 10ms 报告选区；之后异步到达的 selectionchange 不得取消这次
+  快速报告（否则"查词"按钮要等 300ms 才出现）。`LookupUI.onSelection` 对同一选区的重复报告不关闭已打开的面板。
 
 ## 手机（安卓）适配
 
@@ -121,6 +130,7 @@
 7. [x] 触屏自定义长按选词（去掉 Chrome 菜单）
 8. [x] 书库首页（IndexedDB 存书、进度、返回手势）
 9. [x] 阅读设置（主题/纸张颜色/夜间、字号、字体、行距、页边距、翻页方式、两端对齐）
+10. [x] 卡片按书分开，每本书导出到各自的 Anki 子牌组（EPUB生词::书名）
 
 ## 命令
 

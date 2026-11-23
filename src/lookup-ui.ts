@@ -41,7 +41,7 @@ export class LookupUI {
   #current: SelectionInfo | null = null
   /** Incremented per lookup; stale responses are ignored. */
   #request = 0
-  #book = ''
+  #book: { id?: string; title: string } = { title: '' }
 
   constructor() {
     this.#button.hidden = true
@@ -69,6 +69,10 @@ export class LookupUI {
       this.hide()
       return
     }
+    // The selection watcher can report the same selection twice (pointerup, then a
+    // debounced selectionchange); don't let the repeat close a panel the user just opened.
+    const cur = this.#current
+    if (!this.#panel.hidden && cur && cur.text === info.text && cur.sentence === info.sentence) return
     this.#current = info
     this.#panel.hidden = true
     this.#button.hidden = false
@@ -77,9 +81,9 @@ export class LookupUI {
     place(this.#button, info.rect, 'above', coarse.matches ? 14 : MARGIN)
   }
 
-  /** Title of the open book, stored on cards. */
-  setBook(title: string) {
-    this.#book = title
+  /** The open book (library id + title), stored on cards. */
+  setBook(book: { id?: string; title: string }) {
+    this.#book = book
   }
 
   /** Whether the button or panel is showing. */
@@ -167,7 +171,10 @@ export class LookupUI {
     }
     sync()
     add.addEventListener('click', () => {
-      cards.add({ ...r, word: info.text, sentence: info.sentence, offset: info.offset, book: this.#book })
+      cards.add({
+        ...r, word: info.text, sentence: info.sentence, offset: info.offset,
+        book: this.#book.title, bookId: this.#book.id,
+      })
       sync()
     })
     const actions = el('div', 'lookup-actions')

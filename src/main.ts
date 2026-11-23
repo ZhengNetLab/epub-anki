@@ -1,6 +1,7 @@
 import './style.css'
 import { openBook, type Reader } from './reader'
 import { initCardsUI } from './cards-ui'
+import { cards } from './cards'
 import { openSettings } from './settings-ui'
 import { settings } from './settings'
 import { initLibrary } from './library-ui'
@@ -17,7 +18,7 @@ const $ = <T extends HTMLElement = HTMLElement>(sel: string) => {
   return el
 }
 
-initCardsUI()
+const cardsUI = initCardsUI()
 const readingUI = initReadingUI()
 $('#settings-button').addEventListener('click', openSettings)
 
@@ -37,7 +38,11 @@ const main = $('#main')
 
 let reader: Reader | null = null
 
-const library = initLibrary((meta) => void openFromLibrary(meta))
+const library = initLibrary(
+  (meta) => void openFromLibrary(meta),
+  // Cards made before per-book lists only stored the title: link them to library books.
+  (books) => cards.linkLegacy(books),
+)
 
 /** Show the library (home) screen. */
 async function showLibrary() {
@@ -47,6 +52,7 @@ async function showLibrary() {
   titleEl.textContent = '书库'
   backButton.hidden = tocButton.hidden = readingButton.hidden = true
   readingUI.close()
+  cardsUI.setScope(null)
   addButton.hidden = false
   await library.show()
 }
@@ -72,6 +78,7 @@ async function openFile(file: File | string, opts?: Parameters<typeof openBook>[
   enterReader()
   try {
     reader = await openBook(file, opts)
+    cardsUI.setScope({ key: reader.bookKey, title: reader.title })
   } catch (e) {
     console.error(e)
     await closeReader()
@@ -89,6 +96,7 @@ async function openFromLibrary(meta: BookMeta) {
   }
   void markOpened(meta.id)
   await openFile(file, {
+    bookId: meta.id,
     lastLocation: meta.cfi,
     onLocation: (cfi, fraction) => void saveProgress(meta.id, cfi, fraction),
   })

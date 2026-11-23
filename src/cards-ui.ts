@@ -1,22 +1,37 @@
 // Right-hand drawer listing saved cards, with inline edit, delete and undo.
+// While a book is open it shows only that book's cards and exports them to the book's
+// own Anki deck; in the library it shows every card grouped by book.
 
-import { cards, type Card } from './cards'
+import { cards, type Card, type CardGroup } from './cards'
 import { el, highlighted } from './dom'
-import { buildAnkiTsv, downloadText, exportFilename } from './export'
+import { buildAnkiTsv, deckName, downloadText, exportFilename } from './export'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
 
-export function initCardsUI() {
+export interface CardsScope {
+  /** bookKey() of the open book. */
+  key: string
+  title: string
+}
+
+export interface CardsUI {
+  /** Show one book's cards (reading), or null for all cards grouped by book (library). */
+  setScope(scope: CardsScope | null): void
+}
+
+export function initCardsUI(): CardsUI {
   const button = $('#cards-button')
   const count = $('#cards-count')
   const drawer = $('#cards-drawer')
   const dim = $('#cards-dim')
   const list = $('#cards-list')
   const title = $('#cards-title')
+  const deckLine = $('#cards-deck')
   const warning = $('#cards-warning')
   const toast = $('#cards-toast')
   const exportBtn = $<HTMLButtonElement>('#cards-export')
 
+  let scope: CardsScope | null = null
   /** Card currently being edited (only one at a time). */
   let editing: string | null = null
   let toastTimer: number | undefined
@@ -36,8 +51,13 @@ export function initCardsUI() {
   button.addEventListener('click', open)
   dim.addEventListener('click', close)
   $('#cards-close').addEventListener('click', close)
+
+  const exportCards = (list: readonly Card[], bookTitle?: string) => {
+    if (list.length) downloadText(exportFilename(bookTitle), buildAnkiTsv(list))
+  }
   exportBtn.addEventListener('click', () => {
-    if (cards.size) downloadText(exportFilename(), buildAnkiTsv(cards.list()))
+    if (scope) exportCards(cards.forBook(scope.key), scope.title)
+    else exportCards(cards.list())
   })
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && drawer.classList.contains('show') && !editing) close()
@@ -69,7 +89,7 @@ export function initCardsUI() {
       li.append(p)
     }
     const foot = el('div', 'card-foot')
-    foot.append(el('span', 'card-book', c.book))
+    foot.append(el('span', 'spacer'))
     const edit = el('button', 'link-btn', '编辑')
     edit.addEventListener('click', () => {
       editing = c.id
@@ -137,20 +157,59 @@ export function initCardsUI() {
     return li
   }
 
+  const item = (c: Card) => (c.id === editing ? editItem(c) : viewItem(c))
+
+  /** Library view: a header per book with its count, deck and its own export button. */
+  const groupHeader = (g: CardGroup) => {
+    const li = el('li', 'card-group')
+    const text = el('div', 'card-group-text')
+    text.append(el('div', 'card-group-title', `${g.title}（${g.cards.length}）`),
+      el('div', 'card-group-deck', `牌组：${deckName(g.title)}`))
+    const exp = el('button', 'text-btn', '导出')
+    exp.title = `只导出《${g.title}》的卡片`
+    exp.addEventListener('click', () => exportCards(g.cards, g.title))
+    li.append(text, exp)
+    return li
+  }
+
   function render() {
-    const all = cards.list()
-    count.textContent = String(all.length)
-    count.hidden = all.length === 0
-    title.textContent = `卡片（${all.length}）`
-    exportBtn.disabled = all.length === 0
     warning.hidden = cards.persistent
-    if (!all.length) {
-      list.replaceChildren(el('li', 'cards-empty', '还没有卡片。查词后点「加入卡片」。'))
+    if (scope) {
+      const mine = cards.forBook(scope.key)
+      count.textContent = String(mine.length)
+      count.hidden = mine.length === 0
+      title.textContent = `本书卡片（${mine.length}）`
+      exportBtn.textContent = '导出到 Anki'
+      exportBtn.disabled = mine.length === 0
+      deckLine.textContent = `导出到牌组：${deckName(scope.title)}`
+      deckLine.hidden = false
+      list.replaceChildren(...(mine.length
+        ? mine.map(item)
+        : [el('li', 'cards-empty', '这本书还没有卡片。选中词语查词后点「加入卡片」。')]))
       return
     }
-    list.replaceChildren(...all.map((c) => (c.id === editing ? editItem(c) : viewItem(c))))
+    const groups = cards.groups()
+    const total = cards.size
+    count.textContent = String(total)
+    count.hidden = total === 0
+    title.textContent = `全部卡片（${total}）`
+    exportBtn.textContent = '全部导出'
+    exportBtn.disabled = total === 0
+    deckLine.textContent = '每本书导出到各自的牌组（EPUB生词::书名）'
+    deckLine.hidden = groups.length === 0
+    list.replaceChildren(...(groups.length
+      ? groups.flatMap((g) => [groupHeader(g), ...g.cards.map(item)])
+      : [el('li', 'cards-empty', '还没有卡片。打开一本书，选中词语查词后点「加入卡片」。')]))
   }
 
   cards.addEventListener('change', render)
   render()
+
+  return {
+    setScope(next) {
+      scope = next
+      editing = null
+      render()
+    },
+  }
 }

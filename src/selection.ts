@@ -95,8 +95,11 @@ export function watchSelection(
 ) {
   let pointerDown = false
   let timer: number | undefined
+  /** A quick post-pointerup report is scheduled; late selectionchange events mustn't delay it. */
+  let quick = false
   const report = () => {
     clearTimeout(timer)
+    quick = false
     onChange(readSelection(doc, lang))
   }
   doc.addEventListener('pointerdown', (e) => {
@@ -110,12 +113,15 @@ export function watchSelection(
     pointerDown = false
     if (e.pointerType === 'touch') return
     clearTimeout(timer)
+    quick = true
     timer = window.setTimeout(report, 10)
   }, { signal })
   doc.addEventListener('pointercancel', () => { pointerDown = false }, { signal })
   // Keyboard and touch selection: debounce selection changes.
   doc.addEventListener('selectionchange', () => {
-    if (pointerDown) return
+    // selectionchange is dispatched asynchronously and can land just after pointerup;
+    // the quick report will read the final selection anyway.
+    if (pointerDown || quick) return
     clearTimeout(timer)
     timer = window.setTimeout(report, 300)
   }, { signal })

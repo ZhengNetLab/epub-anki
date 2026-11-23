@@ -24,10 +24,15 @@ const savePos = (key: string, cfi: string) => {
 
 export interface Reader {
   view: FoliateView
+  title: string
+  /** Key of this book's card list (see bookKey in cards.ts). */
+  bookKey: string
   destroy(): void
 }
 
 export interface OpenOptions {
+  /** Library id, so cards made while reading go to this book's list. */
+  bookId?: string
   /** Where to resume (EPUB CFI); defaults to the start of the text. */
   lastLocation?: string
   /** Called on every page change with the position and overall progress (0..1). */
@@ -63,7 +68,7 @@ export async function openBook(file: File | string, opts: OpenOptions = {}): Pro
   const lang = (Array.isArray(rawLang) ? rawLang[0] : rawLang) ?? ''
 
   document.title = title
-  lookup.setBook(title)
+  lookup.setBook({ id: opts.bookId, title })
   $('#book-title').textContent = title
   $('#sidebar-title').textContent = title
   $('#sidebar-author').textContent = author
@@ -187,6 +192,8 @@ export async function openBook(file: File | string, opts: OpenOptions = {}): Pro
 
   return {
     view,
+    title,
+    bookKey: opts.bookId ?? `title:${title}`,
     destroy() {
       ac.abort()
       lookup.hide()

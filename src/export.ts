@@ -1,11 +1,20 @@
 // Export cards as a tab-separated text file that Anki (2.1.55+) imports directly.
-// The file header tells Anki the separator, that fields are HTML, the note type,
-// the deck, and which column holds tags, so no import settings need changing.
+// The file header tells Anki the separator, that fields are HTML, the note type, and
+// which columns hold tags and the deck, so no import settings need changing.
+// Each book gets its own sub-deck (EPUB生词::<title>) via a per-row deck column, so
+// one file can hold several books (verified with Anki 26.09's importer).
 
 import type { Card } from './cards'
 import { findNear } from './dom'
 
 export const DECK = 'EPUB生词'
+
+/** Anki deck for a book. '::' would create deeper sub-decks, so it's flattened; the
+ *  deck column is plain text (not HTML), so only tabs/newlines/quotes are removed. */
+export function deckName(bookTitle: string): string {
+  const t = bookTitle.replace(/::/g, ':').replace(/[\t\r\n"]+/g, ' ').trim()
+  return `${DECK}::${t || '未知书籍'}`
+}
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -45,15 +54,15 @@ export function buildAnkiTsv(cards: readonly Card[]): string {
     '#separator:tab',
     '#html:true',
     '#notetype:Basic',
-    `#deck:${DECK}`,
     '#tags column:3',
+    '#deck column:4',
   ]
   // Oldest first, so Anki's "new card" order follows reading order.
   for (const c of [...cards].reverse()) {
     // A leading '#' would look like a header/comment line to Anki.
     const front = field(escapeHtml(c.word)).replace(/^#/, '&#35;')
     const tags = ['epub-anki', c.book ? tag(c.book) : ''].filter(Boolean).join(' ')
-    lines.push([front, field(cardBack(c)), tags].join('\t'))
+    lines.push([front, field(cardBack(c)), tags, deckName(c.book)].join('\t'))
   }
   return lines.join('\n') + '\n'
 }
@@ -69,8 +78,11 @@ export function downloadText(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-/** .tsv rather than .txt: AnkiMobile/AnkiDroid only offer to open .tsv/.csv text imports. */
-export function exportFilename(now = new Date()) {
+/** .tsv rather than .txt: AnkiMobile/AnkiDroid only offer to open .tsv/.csv text imports.
+ *  Includes the book title when exporting a single book. */
+export function exportFilename(bookTitle?: string, now = new Date()) {
   const p = (n: number) => String(n).padStart(2, '0')
-  return `anki-cards-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.tsv`
+  const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}`
+  const name = bookTitle?.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40)
+  return `anki-${name || 'cards'}-${stamp}.tsv`
 }
