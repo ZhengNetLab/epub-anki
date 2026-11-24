@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>EPUB 阅读器</title>
+    <title>OttoBook</title>
     <meta name="theme-color" content="#2f6fdb" />
     <!-- iPhone/iPad home-screen app -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="EPUB查词" />
+    <meta name="apple-mobile-web-app-title" content="OttoBook" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="description" content="读 EPUB，选词用 AI 查释义，一键做成 Anki 卡片" />
     <link rel="icon" type="image/png" href="favicon.png" />
@@ -75,8 +75,8 @@
         <button id="cards-close" class="icon-btn" title="关闭">×</button>
       </div>
       <p id="cards-deck" hidden></p>
-      <p id="cards-ios-hint" hidden>iPhone：导出后在分享面板里选 <b>Anki</b>（应用那一行没有的话，滑到最右点「更多」找）。
-        也可以选「存储到文件」，再到「文件」App 里点这个 .csv 文件，会自动用 Anki 打开。</p>
+      <p id="cards-ios-hint" hidden>iPhone 导入 Anki：点「导出到 Anki」→ 选<b>「存储到文件」</b>→ 打开「文件」App，
+        <b>长按</b>这个 .csv 文件 →「打开方式」→ 选 <b>Anki</b>。（直接点文件会用别的 App 打开）</p>
       <p id="cards-warning" hidden>浏览器存储不可用：卡片只保存到关闭页面为止。</p>
       <ul id="cards-list"></ul>
       <div id="cards-toast" hidden></div>

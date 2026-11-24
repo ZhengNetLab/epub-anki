@@ -62,7 +62,7 @@ const library = initLibrary(
 async function showLibrary() {
   reader?.destroy()
   reader = null
-  document.title = 'EPUB 阅读器'
+  document.title = 'OttoBook'
   titleEl.textContent = '书库'
   backButton.hidden = tocButton.hidden = readingButton.hidden = true
   readingUI.close()

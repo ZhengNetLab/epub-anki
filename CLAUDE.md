@@ -1,4 +1,4 @@
-# epub-anki
+# OttoBook（仓库名 epub-anki）
 
 一个纯前端的 EPUB 阅读器（PWA，可装到安卓 / iPhone 主屏幕），没有自己的服务器。
 在"能读书"之外只有两个附加功能：
@@ -96,11 +96,15 @@
   #guid column:5
   正面<TAB>背面HTML<TAB>epub-anki 书名标签<TAB>EPUB生词::书名<TAB>ea-<hash>
   ```
-  **GUID = hash(牌组名 + 正面小写)**（`cardGuid()`）：Anki 导入时先按 GUID 匹配，所以不同书的同一正面是两条笔记，
+  **GUID = hash(`EPUB生词::` + 书名部分 + 正面小写)**（`cardGuid()`）：Anki 导入时先按 GUID 匹配，所以不同书的同一正面是两条笔记，
   同一本书重新导出会更新已有笔记（不新增）。Anki 自带的重复判断是按正面跨所有牌组比较，且**没有文件头能改成只在本牌组内比较**
   （`#match scope:` 不被识别，已用 anki 26.09.4 验证），所以必须用 GUID。
   代价：用旧版（无 GUID）导出并已导入 Anki 的卡片，用新版再导入一次会在同一牌组多出一份，需在 Anki 里手动删一次。
-  每行自带牌组（`deckName()`）：每本书一个子牌组 `EPUB生词::书名`，同一个文件可含多本书。
+  每行自带牌组（`deckName()`）：每本书一个子牌组 `Otto生词::书名`（`DECK` 常量），同一个文件可含多本书。
+  **GUID 的命名空间固定为旧牌组名 `EPUB生词`**（`GUID_NAMESPACE`），不随显示的牌组名变化：否则改名后
+  已导入 Anki 的卡片再导入会全部重复。已用 anki 26.09.4 验证：旧版导出（EPUB生词）已在 Anki 里时，
+  在 Anki 把"EPUB生词"改名为"Otto生词"后导入新版导出 → 已有 3 张不变、只新增 1 张、全部在 Otto生词 下；
+  不改名也不会重复，但旧卡片留在 EPUB生词、新卡片进 Otto生词。
   牌组列是纯文本（不做 HTML 转义，`&` 原样保留）；书名里的 `::` 替换为 `:`，避免多出一层子牌组。
   扩展名用 `.tsv`：AnkiMobile 不接受 `.txt` 文本导入。
   所有字段 HTML 转义；换行转 `<br>`，制表符转空格；正面开头的 `#` 转 `&#35;`；
@@ -139,14 +143,15 @@
 - 平台判断在 `src/platform.ts`：`isTouchDevice()`、`isIOS()`（含 iPadOS 伪装成 Mac 的情况）、`isStandalone()`。
 - 书库顶部的"添加到主屏幕"提示（`#ios-install`）：仅 iOS 且未从主屏幕打开时显示，可关闭（`epub-anki:ios-install-dismissed`）。
   原因：Safari 对 7 天没访问的网站会清除其存储（书库、卡片），主屏幕应用不受此限。
-- index.html 有 `apple-mobile-web-app-*` 元标签（主屏幕名称"EPUB查词"、状态栏样式）和 `apple-touch-icon`。
+- index.html 有 `apple-mobile-web-app-*` 元标签（主屏幕名称"OttoBook"、状态栏样式）和 `apple-touch-icon`。
 - 导出：iOS 上用系统分享面板（`saveText()` → `navigator.share({ files })`，可直接存到"文件"或发给 AnkiMobile）；
   用户取消不回退；其他平台仍是下载。
   **iOS 导出 CSV（`.csv`，`text/csv`），其他平台仍是 TSV**：实测用户在分享面板里看不到 AnkiMobile；
   论坛反馈 AnkiMobile 只在 .csv 时出现在分享面板（23.10 起不认 .txt）。CSV 用 `#separator:comma`，每个字段加双引号、
   内部双引号加倍；列和文件头与 TSV 相同（`buildAnkiText(cards, 'csv' | 'tsv')`）。
   已用 anki 26.09.4 验证：同一批卡片的 CSV 与 TSV 导入后笔记（正面/背面/标签/牌组/GUID）完全一致，重复导入新增 0。
-  卡片抽屉在 iOS 上显示提示：分享面板里选 Anki（没有就点"更多"），或"存储到文件"后在"文件"App 里点开。
+  **实测（用户真机）：分享面板里没有 Anki；"存储到文件"后在"文件"App 里直接点 .csv 会用别的 App 打开，
+  要长按 →「打开方式」→ 选 Anki 才行。** 卡片抽屉在 iOS 上显示的就是这条指引（`#cards-ios-hint`）。
   AnkiMobile 没有应用内导入按钮，只能从别的 App（分享/文件）打开文件。
 - 触屏翻页：点击事件的 `pointerType` 在 WebKit 上可能是 "mouse"，所以触屏设备上任何点击都按"点按"处理（`src/reader.ts`）。
 - 输入框在触屏设备上字号 16px（iOS 会放大聚焦的 <16px 输入框）；`text-size-adjust: 100%`；`overscroll-behavior: none`。
@@ -178,6 +183,7 @@
 13. [x] 重复 = 同一本书内正面相同；导出带 GUID，Anki 里各书互不影响、重导出只更新
 14. [x] CSP：拦截书内脚本，保护 API key
 15. [x] iPhone 适配（存储改 ArrayBuffer、触屏翻页、输入框防缩放、主屏幕提示、分享面板导出、SVG 图标）
+16. [x] 改名 OttoBook；默认牌组 Otto生词（GUID 命名空间保持 EPUB生词）；iOS 导入指引改为 文件 → 长按 → 打开方式 → Anki
 
 ## 命令
 

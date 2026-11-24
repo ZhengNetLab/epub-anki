@@ -1,19 +1,31 @@
 // Export cards as a tab-separated text file that Anki (2.1.55+) imports directly.
 // The file header tells Anki the separator, that fields are HTML, the note type, and
 // which columns hold tags and the deck, so no import settings need changing.
-// Each book gets its own sub-deck (EPUB生词::<title>) via a per-row deck column, so
+// Each book gets its own sub-deck (Otto生词::<title>) via a per-row deck column, so
 // one file can hold several books (verified with Anki 26.09's importer).
 
 import { normFront, selectedText, type Card } from './cards'
 import { findNear } from './dom'
 
-export const DECK = 'EPUB生词'
+export const DECK = 'Otto生词'
 
-/** Anki deck for a book. '::' would create deeper sub-decks, so it's flattened; the
- *  deck column is plain text (not HTML), so only tabs/newlines/quotes are removed. */
+/**
+ * Namespace for card GUIDs, frozen at the original deck name ("EPUB生词"). The GUID must not
+ * change when the visible deck name does, or cards already imported into Anki would come back
+ * as duplicates. After renaming the old "EPUB生词" deck to "Otto生词" in Anki, re-imports match.
+ */
+const GUID_NAMESPACE = 'EPUB生词'
+
+/** The book's part of the deck name (and of the card GUID). '::' would create deeper
+ *  sub-decks, so it's flattened; the deck column is plain text (not HTML), so only
+ *  tabs/newlines/quotes are removed. */
+function bookDeckPart(bookTitle: string): string {
+  return bookTitle.replace(/::/g, ':').replace(/[\t\r\n"]+/g, ' ').trim() || '未知书籍'
+}
+
+/** Anki deck for a book. */
 export function deckName(bookTitle: string): string {
-  const t = bookTitle.replace(/::/g, ':').replace(/[\t\r\n"]+/g, ' ').trim()
-  return `${DECK}::${t || '未知书籍'}`
+  return `${DECK}::${bookDeckPart(bookTitle)}`
 }
 
 const escapeHtml = (s: string) =>
@@ -70,7 +82,8 @@ function hash(s: string): string {
  * updates its existing notes instead of adding copies. (Anki's own duplicate check
  * compares fronts across all decks, and no file header can limit it to one deck.)
  */
-export const cardGuid = (c: Card) => `ea-${hash(`${deckName(c.book)}\u0000${normFront(c.word)}`)}`
+export const cardGuid = (c: Card) =>
+  `ea-${hash(`${GUID_NAMESPACE}::${bookDeckPart(c.book)}\u0000${normFront(c.word)}`)}`
 
 /**
  * File format: TSV everywhere except iPhone/iPad, which gets CSV — AnkiMobile is offered in

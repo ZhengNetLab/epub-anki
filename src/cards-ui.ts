@@ -4,7 +4,7 @@
 
 import { bookKey, cards, selectedText, type Card, type CardGroup } from './cards'
 import { confirmDialog, el, highlighted } from './dom'
-import { buildAnkiText, deckName, exportFilename, saveText } from './export'
+import { buildAnkiText, DECK, deckName, exportFilename, saveText } from './export'
 import { isIOS } from './platform'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
@@ -231,7 +231,7 @@ export function initCardsUI(): CardsUI {
     exportBtn.textContent = '全部导出'
     exportBtn.disabled = clearBtn.disabled = total === 0
     clearBtn.title = '删除所有书的全部卡片'
-    deckLine.textContent = '每本书导出到各自的牌组（EPUB生词::书名）'
+    deckLine.textContent = `每本书导出到各自的牌组（${DECK}::书名）`
     deckLine.hidden = groups.length === 0
     list.replaceChildren(...(groups.length
       ? groups.flatMap((g) => [groupHeader(g), ...g.cards.map(item)])

@@ -56,8 +56,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'EPUB 阅读器 · AI 查词制卡',
-        short_name: 'EPUB查词',
+        name: 'OttoBook · AI 查词制卡',
+        short_name: 'OttoBook',
         description: '读 EPUB，选词用 AI 查释义，一键做成 Anki 卡片',
         lang: 'zh-CN',
         start_url: '.',
