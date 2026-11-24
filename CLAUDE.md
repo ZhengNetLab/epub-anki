@@ -1,6 +1,6 @@
 # epub-anki
 
-一个纯前端的 EPUB 阅读器（PWA，可装到安卓主屏幕），没有自己的服务器。
+一个纯前端的 EPUB 阅读器（PWA，可装到安卓 / iPhone 主屏幕），没有自己的服务器。
 在"能读书"之外只有两个附加功能：
 
 1. **AI 查词**：选中词语 → 浏览器直接调用 AI（用户自己的 key）给出该词在当前句子语境中的释义。
@@ -38,8 +38,10 @@
 
 - 首页是书库（`src/library-ui.ts`）：封面网格（手机每行 3 本）、书名、作者、阅读进度；按最近打开排序。
   "添加"支持多选；同一文件重复添加会被识别（按文件 SHA-256 去重）。⋯ 按钮删除（自定义确认对话框，卡片保留）。
-- 书存在 IndexedDB（`src/library-db.ts`，库名 `epub-anki`）：`books` 存元数据（含封面 Blob、`cfi`、`progress`），
-  `files` 存 EPUB 文件本体，分开存以便列书库时不读大文件。添加时用 foliate-js 的 `makeBook` 解析书名/作者/封面，
+- 书存在 IndexedDB（`src/library-db.ts`，库名 `epub-anki`）：`books` 存元数据（封面 `coverData`/`coverType`、`cfi`、`progress`），
+  `files` 存 EPUB 文件本体，分开存以便列书库时不读大文件。**二进制一律存 ArrayBuffer，不存 Blob/File**：
+  WebKit（iPhone Safari）往 IndexedDB 存 Blob 会失败（事务报错且 error 为 null，Playwright 的 WebKit 实测复现）。
+  旧版本存的 Blob 记录（`cover` 字段、`files` 里的 File）仍可读，见 `coverBlob()` / `getFile()`。添加时用 foliate-js 的 `makeBook` 解析书名/作者/封面，
   并请求 `navigator.storage.persist()`。
 - 阅读进度：`openBook(file, { lastLocation, onLocation })`，每次翻页把 CFI 和全书进度写回 IndexedDB。
   不经书库打开的书（`?book=` 开发参数）仍用旧的 localStorage 位置记忆。
@@ -132,9 +134,23 @@
 - `crypto.randomUUID` 只在 HTTPS/localhost 可用，`src/cards.ts` 有回退，便于局域网 http 测试。
 - 模拟器里测不了真实长按；用临时把 `attachShadow` 改成 open 的方式拿到书页 iframe，派发合成触屏事件测试。
 
+## iPhone（iOS Safari）适配
+
+- 平台判断在 `src/platform.ts`：`isTouchDevice()`、`isIOS()`（含 iPadOS 伪装成 Mac 的情况）、`isStandalone()`。
+- 书库顶部的"添加到主屏幕"提示（`#ios-install`）：仅 iOS 且未从主屏幕打开时显示，可关闭（`epub-anki:ios-install-dismissed`）。
+  原因：Safari 对 7 天没访问的网站会清除其存储（书库、卡片），主屏幕应用不受此限。
+- index.html 有 `apple-mobile-web-app-*` 元标签（主屏幕名称"EPUB查词"、状态栏样式）和 `apple-touch-icon`。
+- 导出：iOS 上用系统分享面板（`saveText()` → `navigator.share({ files })`，可直接存到"文件"或发给 AnkiMobile），
+  先试 `text/tab-separated-values` 再试 `text/plain`；用户取消不回退；其他平台仍是下载。
+- 触屏翻页：点击事件的 `pointerType` 在 WebKit 上可能是 "mouse"，所以触屏设备上任何点击都按"点按"处理（`src/reader.ts`）。
+- 输入框在触屏设备上字号 16px（iOS 会放大聚焦的 <16px 输入框）；`text-size-adjust: 100%`；`overscroll-behavior: none`。
+- 图标用内联 SVG（⚙/☰ 在 iOS 上会显示成彩色 emoji）。衬线字体栈把西文衬线放在中文衬线前（否则西文会用宋体里的西文字形）。
+- 测试：Playwright 的 WebKit 引擎 + iPhone 15 设备模拟（在 Windows 上可跑）。该 WebKit 版本不能构造 TouchEvent 的
+  touches 列表，长按测试用"带 touches 坐标属性的普通 Event"代替；生产构建里 service worker 会让 page.route 拦不到请求，
+  需要时用 `serviceWorkers: 'block'`。真机才能验证的：添加到主屏幕、分享面板、状态栏、真实长按手感。
+
 ## 已知待办
 
-- iOS 未适配（Safari 7 天清理非主屏幕网站存储、选词菜单差异等）。
 - 未支持从文件管理器"用此应用打开"/分享到本应用（可用 Web Share Target / file_handlers）。
 
 ## 开发阶段
@@ -155,6 +171,7 @@
 12. [x] 卡片正面用词典原形（含可分动词 sieht…aus → aussehen）
 13. [x] 重复 = 同一本书内正面相同；导出带 GUID，Anki 里各书互不影响、重导出只更新
 14. [x] CSP：拦截书内脚本，保护 API key
+15. [x] iPhone 适配（存储改 ArrayBuffer、触屏翻页、输入框防缩放、主屏幕提示、分享面板导出、SVG 图标）
 
 ## 命令
 

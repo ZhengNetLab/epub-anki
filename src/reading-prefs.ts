@@ -42,7 +42,8 @@ export const MARGINS: Record<MarginId, { label: string; gap: string }> = {
 }
 export const FONTS: Record<FontId, { label: string; stack: string | null }> = {
   book: { label: '原书', stack: null },
-  serif: { label: '衬线', stack: '"Noto Serif", "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", Georgia, serif' },
+  // Latin serif fonts first (per-glyph fallback then picks a CJK serif for Chinese text).
+  serif: { label: '衬线', stack: '"Noto Serif", Georgia, "Times New Roman", "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", serif' },
   sans: { label: '无衬线', stack: 'system-ui, "Noto Sans", "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' },
 }
 

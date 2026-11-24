@@ -2,6 +2,7 @@ import 'foliate-js/view.js'
 import { createTOCView } from 'foliate-js/ui/tree.js'
 import { watchSelection } from './selection'
 import { enableTouchSelect } from './touch-select'
+import { isTouchDevice } from './platform'
 import { LookupUI } from './lookup-ui'
 import type { FoliateView, LoadDetail, RelocateDetail } from './types'
 import { formatContributor, formatLang } from './book-meta'
@@ -115,12 +116,15 @@ export async function openBook(file: File | string, opts: OpenOptions = {}): Pro
 
     // Touch: tap the left/right 30% of the screen to turn pages. A tap that only
     // dismisses a selection or the lookup panel doesn't turn the page.
+    // On touch devices any tap counts: WebKit doesn't reliably report pointerType "touch"
+    // on the click that follows a tap.
+    const tapped = (ev: Event) => (ev as PointerEvent).pointerType === 'touch' || isTouchDevice()
     let dismissing = false
     doc.addEventListener('pointerdown', (ev) => {
-      if (ev.pointerType === 'touch') dismissing = lookup.visible || !doc.getSelection()?.isCollapsed
+      if (tapped(ev)) dismissing = lookup.visible || !doc.getSelection()?.isCollapsed
     }, { capture: true, signal })
     doc.addEventListener('click', (ev) => {
-      if ((ev as PointerEvent).pointerType !== 'touch' || dismissing) return
+      if (!tapped(ev) || dismissing) return
       if ((ev.target as Element | null)?.closest?.('a')) return
       if (!doc.getSelection()?.isCollapsed) return
       const frame = doc.defaultView?.frameElement?.getBoundingClientRect()

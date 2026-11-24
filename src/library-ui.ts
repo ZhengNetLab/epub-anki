@@ -1,6 +1,6 @@
 // Library home screen: a grid of saved books with covers and progress.
 
-import { addBook, deleteBook, listBooks, type BookMeta } from './library-db'
+import { addBook, coverBlob, deleteBook, listBooks, type BookMeta } from './library-db'
 import { el } from './dom'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
@@ -64,9 +64,10 @@ export function initLibrary(
     const open = el('button', 'book-open')
     open.title = meta.title
     const cover = el('div', 'book-cover')
-    if (meta.cover) {
+    const coverImage = coverBlob(meta)
+    if (coverImage) {
       const img = el('img')
-      const url = URL.createObjectURL(meta.cover)
+      const url = URL.createObjectURL(coverImage)
       coverUrls.push(url)
       img.src = url
       img.alt = ''

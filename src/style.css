@@ -584,3 +584,29 @@ foliate-view { display: block; width: 100%; height: 100%; }
 .card-dupe { flex: 1; min-width: 0; color: #c77a00; font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .card-field-error { display: block; min-height: 0; color: #d33; font-size: 12px; margin-top: 2px; }
 .card-field-error:empty { display: none; }
+
+/* ---- iPhone / touch ---- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* No whole-app rubber-band bounce in Safari (the app has its own scrolling areas). */
+html, body { overscroll-behavior: none; }
+.icon { display: block; }
+.icon-btn:has(.icon) { padding: 6px 8px; line-height: 0; }
+@media (pointer: coarse) {
+  /* iPhone Safari zooms the page into any focused field under 16px. */
+  input, textarea, select { font-size: 16px !important; }
+}
+#ios-install {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 8px 10px 14px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.55;
+}
+#ios-install > div { flex: 1; }
+#ios-install b { font-size: 14px; }
+.ios-share { display: inline-block; vertical-align: -3px; color: var(--accent); }

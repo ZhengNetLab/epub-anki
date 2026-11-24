@@ -8,6 +8,7 @@ import { initLibrary } from './library-ui'
 import { getFile, markOpened, saveProgress, type BookMeta } from './library-db'
 import { applyAppTheme, readingPrefs } from './reading-prefs'
 import { initReadingUI } from './reading-ui'
+import { isIOS, isStandalone } from './platform'
 
 applyAppTheme()
 readingPrefs.addEventListener('change', applyAppTheme)
@@ -21,6 +22,19 @@ const $ = <T extends HTMLElement = HTMLElement>(sel: string) => {
 const cardsUI = initCardsUI()
 const readingUI = initReadingUI()
 $('#settings-button').addEventListener('click', openSettings)
+
+// iPhone/iPad in a browser tab: explain Add to Home Screen. Besides feeling like an app,
+// it protects the library: Safari may wipe a site's storage after 7 days without a visit,
+// but not for home-screen apps.
+const IOS_TIP_KEY = 'epub-anki:ios-install-dismissed'
+const iosTip = $('#ios-install')
+let tipDismissed = false
+try { tipDismissed = localStorage.getItem(IOS_TIP_KEY) === '1' } catch { /* storage unavailable */ }
+iosTip.hidden = !isIOS() || isStandalone() || tipDismissed
+$('#ios-install-close').addEventListener('click', () => {
+  iosTip.hidden = true
+  try { localStorage.setItem(IOS_TIP_KEY, '1') } catch { /* not persisted */ }
+})
 
 const keyBanner = $('#key-banner')
 const syncKeyBanner = () => { keyBanner.hidden = settings.config() !== null }

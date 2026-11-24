@@ -1,6 +1,9 @@
 // The library: EPUB files and their metadata kept on this device in IndexedDB, so books
 // can be reopened from the home screen without picking the file again.
-// Metadata and file blobs live in separate stores so listing the library stays cheap.
+// Metadata and file bytes live in separate stores so listing the library stays cheap.
+// Binary data is stored as ArrayBuffer, not Blob/File: WebKit (iPhone Safari) has a history
+// of failing to store Blobs in IndexedDB (the transaction errors with a null error), while
+// ArrayBuffers work everywhere. Records written as Blobs by earlier versions are still read.
 
 import { makeBook } from 'foliate-js/view.js'
 import type { Book } from './types'
@@ -15,6 +18,10 @@ export interface BookMeta {
   size: number
   addedAt: number
   lastOpenedAt?: number
+  /** Cover image bytes and MIME type. */
+  coverData?: ArrayBuffer
+  coverType?: string
+  /** Cover as a Blob (records from versions before ArrayBuffer storage). */
   cover?: Blob
   /** Last reading position (EPUB CFI) and overall progress 0..1. */
   cfi?: string
@@ -50,9 +57,15 @@ const done = <T>(req: IDBRequest<T>) =>
 const committed = (tx: IDBTransaction) =>
   new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-    tx.onabort = () => reject(tx.error ?? new Error('Transaction aborted'))
+    tx.onerror = () => reject(tx.error ?? new Error('保存到本机存储失败'))
+    tx.onabort = () => reject(tx.error ?? new Error('保存到本机存储失败'))
   })
+
+/** The book's cover image, whichever format it was stored in. */
+export function coverBlob(meta: BookMeta): Blob | undefined {
+  if (meta.coverData) return new Blob([meta.coverData], { type: meta.coverType || 'image/jpeg' })
+  return meta.cover
+}
 
 /** Books, most recently opened (or added) first. */
 export async function listBooks(): Promise<BookMeta[]> {
@@ -68,14 +81,14 @@ export async function getBook(id: string): Promise<BookMeta | undefined> {
 
 export async function getFile(meta: BookMeta): Promise<File> {
   const d = await db()
-  const blob = await done(d.transaction(FILES).objectStore(FILES).get(meta.id) as IDBRequest<Blob | undefined>)
-  if (!blob) throw new Error('这本书的文件不见了，请重新添加')
-  return new File([blob], meta.fileName, { type: 'application/epub+zip' })
+  const data = await done(d.transaction(FILES).objectStore(FILES).get(meta.id) as IDBRequest<ArrayBuffer | Blob | undefined>)
+  if (!data) throw new Error('这本书的文件不见了，请重新添加')
+  return new File([data], meta.fileName, { type: 'application/epub+zip' })
 }
 
-async function fileId(file: File): Promise<string> {
+async function fileId(file: File, bytes: ArrayBuffer): Promise<string> {
   if (crypto.subtle) {
-    const hash = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+    const hash = await crypto.subtle.digest('SHA-256', bytes)
     return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('')
   }
   // crypto.subtle needs HTTPS; plain-http LAN testing falls back to a name/size key.
@@ -84,7 +97,8 @@ async function fileId(file: File): Promise<string> {
 
 /** Add a book file. Returns its metadata and whether it was already in the library. */
 export async function addBook(file: File): Promise<{ meta: BookMeta; existed: boolean }> {
-  const id = await fileId(file)
+  const bytes = await file.arrayBuffer()
+  const id = await fileId(file, bytes)
   const existing = await getBook(id)
   if (existing) return { meta: existing, existed: true }
 
@@ -93,6 +107,7 @@ export async function addBook(file: File): Promise<{ meta: BookMeta; existed: bo
   try {
     cover = (await book.getCover?.()) ?? undefined
   } catch { /* no cover */ }
+  const coverData = cover ? await cover.arrayBuffer() : undefined
   const meta: BookMeta = {
     id,
     title: formatLang(book.metadata?.title) || file.name.replace(/\.epub$/i, ''),
@@ -100,11 +115,12 @@ export async function addBook(file: File): Promise<{ meta: BookMeta; existed: bo
     fileName: file.name,
     size: file.size,
     addedAt: Date.now(),
-    cover,
+    coverData,
+    coverType: cover?.type,
   }
   const d = await db()
   const tx = d.transaction([BOOKS, FILES], 'readwrite')
-  tx.objectStore(FILES).put(file, id)
+  tx.objectStore(FILES).put(bytes, id)
   tx.objectStore(BOOKS).put(meta)
   await committed(tx)
   // Ask the browser not to evict the library under storage pressure (installed PWAs usually get this).

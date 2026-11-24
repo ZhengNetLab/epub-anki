@@ -4,7 +4,8 @@
 
 import { bookKey, cards, selectedText, type Card, type CardGroup } from './cards'
 import { confirmDialog, el, highlighted } from './dom'
-import { buildAnkiTsv, deckName, downloadText, exportFilename } from './export'
+import { buildAnkiTsv, deckName, exportFilename, saveText } from './export'
+import { isIOS } from './platform'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
 
@@ -56,7 +57,7 @@ export function initCardsUI(): CardsUI {
   $('#cards-close').addEventListener('click', close)
 
   const exportCards = (list: readonly Card[], bookTitle?: string) => {
-    if (list.length) downloadText(exportFilename(bookTitle), buildAnkiTsv(list))
+    if (list.length) void saveText(exportFilename(bookTitle), buildAnkiTsv(list), isIOS())
   }
   exportBtn.addEventListener('click', () => {
     if (scope) exportCards(cards.forBook(scope.key), scope.title)

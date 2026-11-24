@@ -96,6 +96,29 @@ export function buildAnkiTsv(cards: readonly Card[]): string {
   return lines.join('\n') + '\n'
 }
 
+/**
+ * Hand the export to the user. On iPhone/iPad, use the system share sheet (Save to Files,
+ * or straight into AnkiMobile): Safari's handling of downloaded blob: files is unreliable,
+ * especially in home-screen apps. Elsewhere, download the file.
+ * Must be called from a user gesture (the share sheet requires one).
+ */
+export async function saveText(filename: string, text: string, ios: boolean): Promise<void> {
+  if (ios && navigator.canShare) {
+    for (const type of ['text/tab-separated-values', 'text/plain']) {
+      const file = new File([text], filename, { type })
+      if (!navigator.canShare({ files: [file] })) continue
+      try {
+        await navigator.share({ files: [file] })
+        return
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return // user closed the sheet
+        break // sharing failed: fall back to a download
+      }
+    }
+  }
+  downloadText(filename, text)
+}
+
 export function downloadText(filename: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }))
   const a = document.createElement('a')
