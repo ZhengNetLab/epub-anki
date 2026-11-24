@@ -25,6 +25,12 @@
   - 模型名经常变：换模型前先查 `GET {baseUrl}/models`，再用 `scripts/bench-lookup.ts` 实测延迟。
 - PWA：`vite-plugin-pwa`（配置在 `vite.config.ts`），预缓存全部构建产物（含 foliate-js 的懒加载分块）。
   图标在 `public/`（Pillow + 微软雅黑生成的蓝底白"词"）。
+- **CSP（内容安全策略）**：`vite.config.ts` 里的 `csp()` 插件把 `<meta http-equiv="Content-Security-Policy">`
+  注入 index.html（GitHub Pages 不能设响应头）。书页是 foliate-js 用 blob: URL 加载的同源 iframe，blob: 文档继承
+  这条策略，所以书里的脚本（内联、onerror 等事件属性、data: 脚本、SVG 脚本、javascript: 链接）全部被拦截，
+  无法读取 localStorage 里的 API key。允许书自带的 blob:/data: 样式、图片、字体；网络只允许本站和
+  `PROVIDERS` 里各家 API 的域名（新增服务商会自动加入）；外部图片（跟踪像素）也被拦。开发模式额外允许 ws:（热更新）。
+  测试书 `books/hostile.epub`：未加 CSP 时 4 种手法能读到 key，加了之后全部拦截、正文照常显示。
 - 部署：`.github/workflows/deploy.yml` 推送 main 后构建并发布到 GitHub Pages，
   `BASE_PATH=/<仓库名>/`（本地构建默认 `/`）。Pages 需在仓库设置里选 Source: GitHub Actions。
 
@@ -128,8 +134,6 @@
 
 ## 已知待办
 
-- **CSP 尚未添加（用户决定暂缓）**：foliate-js 文档要求必须用 CSP 屏蔽书内脚本，否则恶意 EPUB 里的脚本
-  能读取 localStorage 中的 API key。计划：`script-src 'self'`，`connect-src 'self' https://api.openai.com https://api.deepseek.com`。
 - iOS 未适配（Safari 7 天清理非主屏幕网站存储、选词菜单差异等）。
 - 未支持从文件管理器"用此应用打开"/分享到本应用（可用 Web Share Target / file_handlers）。
 
@@ -150,6 +154,7 @@
 11. [x] 卡片清空（确认 + 撤销）；设置里可选"选词后自动查词"
 12. [x] 卡片正面用词典原形（含可分动词 sieht…aus → aussehen）
 13. [x] 重复 = 同一本书内正面相同；导出带 GUID，Anki 里各书互不影响、重导出只更新
+14. [x] CSP：拦截书内脚本，保护 API key
 
 ## 命令
 
