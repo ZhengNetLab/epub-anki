@@ -24,7 +24,10 @@
   - OpenAI 的错误响应（如无效 key 的 401）不带 CORS 头，浏览器里只能看到"请求失败"，读不到状态码。
   - 模型名经常变：换模型前先查 `GET {baseUrl}/models`，再用 `scripts/bench-lookup.ts` 实测延迟。
 - PWA：`vite-plugin-pwa`（配置在 `vite.config.ts`），预缓存全部构建产物（含 foliate-js 的懒加载分块）。
-  图标在 `public/`（Pillow + 微软雅黑生成的蓝底白"词"）。
+  图标在 `public/`，由 `python scripts/make-icons.py` 从 `design/icon-source.webp`（用户提供的戴礼帽小幽灵，1024²）生成：
+  192/512 普通图标、180 的 apple-touch-icon（iOS 主屏幕，不透明）、64 的 favicon，以及 Android 自适应图标
+  `icon-maskable-512.png`（画面缩到 82% 贴底放置，上/左/右羽化进由原图边缘色插值出的桃色渐变，保证帽子在 80% 安全区内）。
+  manifest 的 `background_color`（安卓启动画面底色）用同一种桃色。
 - **CSP（内容安全策略）**：`vite.config.ts` 里的 `csp()` 插件把 `<meta http-equiv="Content-Security-Policy">`
   注入 index.html（GitHub Pages 不能设响应头）。书页是 foliate-js 用 blob: URL 加载的同源 iframe，blob: 文档继承
   这条策略，所以书里的脚本（内联、onerror 等事件属性、data: 脚本、SVG 脚本、javascript: 链接）全部被拦截，
@@ -184,6 +187,7 @@
 14. [x] CSP：拦截书内脚本，保护 API key
 15. [x] iPhone 适配（存储改 ArrayBuffer、触屏翻页、输入框防缩放、主屏幕提示、分享面板导出、SVG 图标）
 16. [x] 改名 OttoBook；默认牌组 Otto生词（GUID 命名空间保持 EPUB生词）；iOS 导入指引改为 文件 → 长按 → 打开方式 → Anki
+17. [x] 新图标（小幽灵），含 Android 自适应图标与 iOS 主屏幕图标
 
 ## 命令
 

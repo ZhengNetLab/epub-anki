@@ -64,7 +64,8 @@ export default defineConfig({
         scope: '.',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#fbfaf7',
+        // Splash screen behind the icon on Android: the icon artwork's peach.
+        background_color: '#fcc590',
         theme_color: '#2f6fdb',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
