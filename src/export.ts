@@ -99,14 +99,19 @@ export function buildAnkiTsv(cards: readonly Card[]): string {
   return buildAnkiText(cards, 'tsv')
 }
 
-export function buildAnkiText(cards: readonly Card[], format: ExportFormat): string {
+/**
+ * @param perBookDecks true: a deck column puts each book in Otto生词::<title> (Anki then
+ *   ignores the deck chosen in its import dialog for new cards). false: no deck in the file,
+ *   so the user picks the deck when importing. GUIDs are the same either way, so switching
+ *   modes never duplicates notes; already-imported notes are updated in their current deck.
+ */
+export function buildAnkiText(cards: readonly Card[], format: ExportFormat, perBookDecks = true): string {
   const lines = [
     format === 'csv' ? '#separator:comma' : '#separator:tab',
     '#html:true',
     '#notetype:Basic',
     '#tags column:3',
-    '#deck column:4',
-    '#guid column:5',
+    ...(perBookDecks ? ['#deck column:4', '#guid column:5'] : ['#guid column:4']),
   ]
   const seen = new Set<string>()
   // Oldest first, so Anki's "new card" order follows reading order. Of cards sharing a
@@ -118,7 +123,7 @@ export function buildAnkiText(cards: readonly Card[], format: ExportFormat): str
     // A leading '#' would look like a header/comment line to Anki.
     const front = field(escapeHtml(c.word)).replace(/^#/, '&#35;')
     const tags = ['epub-anki', c.book ? tag(c.book) : ''].filter(Boolean).join(' ')
-    const row = [front, field(cardBack(c)), tags, deckName(c.book), guid]
+    const row = perBookDecks ? [front, field(cardBack(c)), tags, deckName(c.book), guid] : [front, field(cardBack(c)), tags, guid]
     lines.push(format === 'csv' ? row.map(csvField).join(',') : row.join('\t'))
   }
   return lines.join('\n') + '\n'

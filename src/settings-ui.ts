@@ -1,6 +1,6 @@
 // Settings dialog: AI provider, API key and model. Values stay on this device.
 
-import { settings, type Settings } from './settings'
+import { settings, type DeckMode, type Settings } from './settings'
 import { PROVIDERS, type ProviderName } from './providers'
 import { lookup } from './ai'
 import { el } from './dom'
@@ -60,6 +60,14 @@ function build(): HTMLDialogElement {
   autoText.append('选词后自动查词', el('small', undefined, '关闭时，选词后先显示「查词」按钮，点一下才查（不会误查、更省额度）'))
   autoRow.append(auto, autoText)
 
+  // Anki deck on export
+  const deckSel = el('select')
+  for (const [value, label] of [['per-book', '每本书自动一个牌组（Otto生词::书名）'], ['choose', '导入时在 Anki 里自己选牌组']]) {
+    const o = el('option', undefined, label)
+    o.value = value
+    deckSel.append(o)
+  }
+
   const hint = el('p', 'settings-hint', 'API key 只保存在这台设备的浏览器里，查词时直接发送给所选的 AI 服务。')
 
   const test = el('button', 'text-btn', '测试')
@@ -72,7 +80,7 @@ function build(): HTMLDialogElement {
   actions.append(test, el('span', 'spacer'), cancel, save)
 
   form.append(head, row('AI 服务', providerSel), row('API key', keyRow), keyLink,
-    row('模型', modelInput, modelList), autoRow, hint, status, actions)
+    row('模型', modelInput, modelList), autoRow, row('导出到 Anki 的牌组', deckSel), hint, status, actions)
   d.append(form)
 
   // Draft edits per provider so switching the dropdown doesn't lose typed keys.
@@ -122,12 +130,13 @@ function build(): HTMLDialogElement {
   cancel.addEventListener('click', () => d.close())
   form.addEventListener('submit', () => {
     capture()
-    settings.set({ ...draft, provider: current(), autoLookup: auto.checked })
+    settings.set({ ...draft, provider: current(), autoLookup: auto.checked, deckMode: deckSel.value as DeckMode })
   })
   d.addEventListener('settings-open', () => {
     const s = settings.get()
-    draft = { provider: s.provider, keys: { ...s.keys }, models: { ...s.models }, autoLookup: s.autoLookup }
+    draft = { provider: s.provider, keys: { ...s.keys }, models: { ...s.models }, autoLookup: s.autoLookup, deckMode: s.deckMode }
     auto.checked = s.autoLookup
+    deckSel.value = s.deckMode
     providerSel.value = s.provider
     showProvider()
   })

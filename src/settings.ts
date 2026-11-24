@@ -8,12 +8,17 @@ export interface Settings {
   models: Partial<Record<ProviderName, string>>
   /** Look a word up as soon as it's selected, instead of after tapping 查词. */
   autoLookup: boolean
+  /** Anki deck on export: one deck per book (deck column in the file), or none in the
+   *  file so the user picks the deck in Anki's import dialog. */
+  deckMode: DeckMode
 }
+
+export type DeckMode = 'per-book' | 'choose'
 
 const KEY = 'epub-anki:settings'
 
 class SettingsStore extends EventTarget {
-  #s: Settings = { provider: 'openai', keys: {}, models: {}, autoLookup: false }
+  #s: Settings = { provider: 'openai', keys: {}, models: {}, autoLookup: false, deckMode: 'per-book' }
 
   constructor() {
     super()
@@ -25,6 +30,7 @@ class SettingsStore extends EventTarget {
         this.#s.keys = { ...p.keys }
         this.#s.models = { ...p.models }
         this.#s.autoLookup = p.autoLookup === true
+        this.#s.deckMode = p.deckMode === 'choose' ? 'choose' : 'per-book'
       }
     } catch { /* storage unavailable: defaults */ }
   }

@@ -5,6 +5,7 @@
 import { bookKey, cards, selectedText, type Card, type CardGroup } from './cards'
 import { confirmDialog, el, highlighted } from './dom'
 import { buildAnkiText, DECK, deckName, exportFilename, saveText } from './export'
+import { settings } from './settings'
 import { isIOS } from './platform'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
@@ -19,6 +20,8 @@ export interface CardsUI {
   /** Show one book's cards (reading), or null for all cards grouped by book (library). */
   setScope(scope: CardsScope | null): void
 }
+
+const perBook = () => settings.get().deckMode === 'per-book'
 
 export function initCardsUI(): CardsUI {
   const button = $('#cards-button')
@@ -62,7 +65,8 @@ export function initCardsUI(): CardsUI {
     // iPhone/iPad: CSV, so AnkiMobile is offered in the share sheet; elsewhere TSV.
     const ios = isIOS()
     const format = ios ? 'csv' : 'tsv'
-    void saveText(exportFilename(bookTitle, format), buildAnkiText(list, format), ios)
+    const perBookDecks = perBook()
+    void saveText(exportFilename(bookTitle, format), buildAnkiText(list, format, perBookDecks), ios)
   }
   exportBtn.addEventListener('click', () => {
     if (scope) exportCards(cards.forBook(scope.key), scope.title)
@@ -197,7 +201,7 @@ export function initCardsUI(): CardsUI {
     const li = el('li', 'card-group')
     const text = el('div', 'card-group-text')
     text.append(el('div', 'card-group-title', `${g.title}（${g.cards.length}）`),
-      el('div', 'card-group-deck', `牌组：${deckName(g.title)}`))
+      el('div', 'card-group-deck', perBook() ? `牌组：${deckName(g.title)}` : '牌组：导入时自己选'))
     const exp = el('button', 'text-btn', '导出')
     exp.title = `只导出《${g.title}》的卡片`
     exp.addEventListener('click', () => exportCards(g.cards, g.title))
@@ -216,7 +220,7 @@ export function initCardsUI(): CardsUI {
       exportBtn.textContent = '导出到 Anki'
       exportBtn.disabled = clearBtn.disabled = mine.length === 0
       clearBtn.title = '删除本书的所有卡片'
-      deckLine.textContent = `导出到牌组：${deckName(scope.title)}`
+      deckLine.textContent = perBook() ? `导出到牌组：${deckName(scope.title)}` : '牌组：导入 Anki 时自己选（可在设置里改）'
       deckLine.hidden = false
       list.replaceChildren(...(mine.length
         ? mine.map(item)
@@ -231,7 +235,7 @@ export function initCardsUI(): CardsUI {
     exportBtn.textContent = '全部导出'
     exportBtn.disabled = clearBtn.disabled = total === 0
     clearBtn.title = '删除所有书的全部卡片'
-    deckLine.textContent = `每本书导出到各自的牌组（${DECK}::书名）`
+    deckLine.textContent = perBook() ? `每本书导出到各自的牌组（${DECK}::书名）` : '牌组：导入 Anki 时自己选（可在设置里改）'
     deckLine.hidden = groups.length === 0
     list.replaceChildren(...(groups.length
       ? groups.flatMap((g) => [groupHeader(g), ...g.cards.map(item)])
@@ -239,6 +243,7 @@ export function initCardsUI(): CardsUI {
   }
 
   cards.addEventListener('change', render)
+  settings.addEventListener('change', render)
   render()
 
   return {

@@ -104,6 +104,11 @@
   （`#match scope:` 不被识别，已用 anki 26.09.4 验证），所以必须用 GUID。
   代价：用旧版（无 GUID）导出并已导入 Anki 的卡片，用新版再导入一次会在同一牌组多出一份，需在 Anki 里手动删一次。
   每行自带牌组（`deckName()`）：每本书一个子牌组 `Otto生词::书名`（`DECK` 常量），同一个文件可含多本书。
+  **牌组列会覆盖 Anki 导入对话框里选的牌组**（新卡片），所以设置里有"导出到 Anki 的牌组"（`deckMode`）：
+  `per-book`（默认，带牌组列）或 `choose`（不带牌组列，`#guid column:4`，导入时在 Anki 里自己选牌组，
+  `buildAnkiText(cards, format, perBookDecks)`）。两种模式 GUID 相同，切换不会产生重复。
+  已用 anki 26.09.4 验证：choose 模式的 TSV/CSV 导入到已有牌组"德语" → 全部进德语，重复导入新增 0；
+  之后改用 per-book 导出（多 1 张）→ 已有的留在德语不动，只新增 1 张到 `Otto生词::书名`。
   **GUID 的命名空间固定为旧牌组名 `EPUB生词`**（`GUID_NAMESPACE`），不随显示的牌组名变化：否则改名后
   已导入 Anki 的卡片再导入会全部重复。已用 anki 26.09.4 验证：旧版导出（EPUB生词）已在 Anki 里时，
   在 Anki 把"EPUB生词"改名为"Otto生词"后导入新版导出 → 已有 3 张不变、只新增 1 张、全部在 Otto生词 下；
