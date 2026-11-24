@@ -4,7 +4,7 @@
 
 import { bookKey, cards, selectedText, type Card, type CardGroup } from './cards'
 import { confirmDialog, el, highlighted } from './dom'
-import { buildAnkiTsv, deckName, exportFilename, saveText } from './export'
+import { buildAnkiText, deckName, exportFilename, saveText } from './export'
 import { isIOS } from './platform'
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel)!
@@ -31,6 +31,7 @@ export function initCardsUI(): CardsUI {
   const warning = $('#cards-warning')
   const toast = $('#cards-toast')
   const exportBtn = $<HTMLButtonElement>('#cards-export')
+  $('#cards-ios-hint').hidden = !isIOS()
   const clearBtn = $<HTMLButtonElement>('#cards-clear')
 
   let scope: CardsScope | null = null
@@ -57,7 +58,11 @@ export function initCardsUI(): CardsUI {
   $('#cards-close').addEventListener('click', close)
 
   const exportCards = (list: readonly Card[], bookTitle?: string) => {
-    if (list.length) void saveText(exportFilename(bookTitle), buildAnkiTsv(list), isIOS())
+    if (!list.length) return
+    // iPhone/iPad: CSV, so AnkiMobile is offered in the share sheet; elsewhere TSV.
+    const ios = isIOS()
+    const format = ios ? 'csv' : 'tsv'
+    void saveText(exportFilename(bookTitle, format), buildAnkiText(list, format), ios)
   }
   exportBtn.addEventListener('click', () => {
     if (scope) exportCards(cards.forBook(scope.key), scope.title)

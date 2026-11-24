@@ -610,3 +610,5 @@ html, body { overscroll-behavior: none; }
 #ios-install > div { flex: 1; }
 #ios-install b { font-size: 14px; }
 .ios-share { display: inline-block; vertical-align: -3px; color: var(--accent); }
+#cards-ios-hint { margin: 0; padding: 8px 16px; color: var(--muted); font-size: 12px; line-height: 1.55; border-bottom: 1px solid var(--border); background: var(--hover); }
+#cards-ios-hint b { color: var(--fg); }

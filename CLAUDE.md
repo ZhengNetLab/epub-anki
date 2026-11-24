@@ -86,7 +86,7 @@
   - 旧卡片只有书名：书库每次列出时 `cards.linkLegacy(books)` 按书名补上 `bookId`。
   - "清空"按钮跟随范围：阅读时清空本书，书库里清空全部。先弹确认框（`confirmDialog()`，`src/dom.ts`），
     清空后底部提示可"撤销"（`cards.clear()` 返回快照，`restoreAll()` 还原并保留之后新加的卡片）。
-- 导出（`src/export.ts`，文件 `anki-<书名>-YYYYMMDD-HHMM.tsv`，全部导出为 `anki-cards-…tsv`，UTF-8 无 BOM）：
+- 导出（`src/export.ts`，文件 `anki-<书名>-YYYYMMDD-HHMM.tsv`（iOS 为 `.csv`，见 iPhone 适配），全部导出为 `anki-cards-…`，UTF-8 无 BOM）：
   ```
   #separator:tab
   #html:true
@@ -140,8 +140,14 @@
 - 书库顶部的"添加到主屏幕"提示（`#ios-install`）：仅 iOS 且未从主屏幕打开时显示，可关闭（`epub-anki:ios-install-dismissed`）。
   原因：Safari 对 7 天没访问的网站会清除其存储（书库、卡片），主屏幕应用不受此限。
 - index.html 有 `apple-mobile-web-app-*` 元标签（主屏幕名称"EPUB查词"、状态栏样式）和 `apple-touch-icon`。
-- 导出：iOS 上用系统分享面板（`saveText()` → `navigator.share({ files })`，可直接存到"文件"或发给 AnkiMobile），
-  先试 `text/tab-separated-values` 再试 `text/plain`；用户取消不回退；其他平台仍是下载。
+- 导出：iOS 上用系统分享面板（`saveText()` → `navigator.share({ files })`，可直接存到"文件"或发给 AnkiMobile）；
+  用户取消不回退；其他平台仍是下载。
+  **iOS 导出 CSV（`.csv`，`text/csv`），其他平台仍是 TSV**：实测用户在分享面板里看不到 AnkiMobile；
+  论坛反馈 AnkiMobile 只在 .csv 时出现在分享面板（23.10 起不认 .txt）。CSV 用 `#separator:comma`，每个字段加双引号、
+  内部双引号加倍；列和文件头与 TSV 相同（`buildAnkiText(cards, 'csv' | 'tsv')`）。
+  已用 anki 26.09.4 验证：同一批卡片的 CSV 与 TSV 导入后笔记（正面/背面/标签/牌组/GUID）完全一致，重复导入新增 0。
+  卡片抽屉在 iOS 上显示提示：分享面板里选 Anki（没有就点"更多"），或"存储到文件"后在"文件"App 里点开。
+  AnkiMobile 没有应用内导入按钮，只能从别的 App（分享/文件）打开文件。
 - 触屏翻页：点击事件的 `pointerType` 在 WebKit 上可能是 "mouse"，所以触屏设备上任何点击都按"点按"处理（`src/reader.ts`）。
 - 输入框在触屏设备上字号 16px（iOS 会放大聚焦的 <16px 输入框）；`text-size-adjust: 100%`；`overscroll-behavior: none`。
 - 图标用内联 SVG（⚙/☰ 在 iOS 上会显示成彩色 emoji）。衬线字体栈把西文衬线放在中文衬线前（否则西文会用宋体里的西文字形）。

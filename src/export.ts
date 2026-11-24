@@ -72,9 +72,23 @@ function hash(s: string): string {
  */
 export const cardGuid = (c: Card) => `ea-${hash(`${deckName(c.book)}\u0000${normFront(c.word)}`)}`
 
+/**
+ * File format: TSV everywhere except iPhone/iPad, which gets CSV — AnkiMobile is offered in
+ * the iOS share sheet for .csv files, not for .tsv (forum reports; .txt was dropped in 23.10).
+ * Both use Anki's text import with the same header lines and columns.
+ */
+export type ExportFormat = 'tsv' | 'csv'
+
+/** CSV field: always quoted, inner quotes doubled (fields never contain raw newlines). */
+const csvField = (s: string) => `"${s.replace(/"/g, '""')}"`
+
 export function buildAnkiTsv(cards: readonly Card[]): string {
+  return buildAnkiText(cards, 'tsv')
+}
+
+export function buildAnkiText(cards: readonly Card[], format: ExportFormat): string {
   const lines = [
-    '#separator:tab',
+    format === 'csv' ? '#separator:comma' : '#separator:tab',
     '#html:true',
     '#notetype:Basic',
     '#tags column:3',
@@ -91,7 +105,8 @@ export function buildAnkiTsv(cards: readonly Card[]): string {
     // A leading '#' would look like a header/comment line to Anki.
     const front = field(escapeHtml(c.word)).replace(/^#/, '&#35;')
     const tags = ['epub-anki', c.book ? tag(c.book) : ''].filter(Boolean).join(' ')
-    lines.push([front, field(cardBack(c)), tags, deckName(c.book), guid].join('\t'))
+    const row = [front, field(cardBack(c)), tags, deckName(c.book), guid]
+    lines.push(format === 'csv' ? row.map(csvField).join(',') : row.join('\t'))
   }
   return lines.join('\n') + '\n'
 }
@@ -104,7 +119,8 @@ export function buildAnkiTsv(cards: readonly Card[]): string {
  */
 export async function saveText(filename: string, text: string, ios: boolean): Promise<void> {
   if (ios && navigator.canShare) {
-    for (const type of ['text/tab-separated-values', 'text/plain']) {
+    const types = filename.endsWith('.csv') ? ['text/csv', 'text/plain'] : ['text/tab-separated-values', 'text/plain']
+    for (const type of types) {
       const file = new File([text], filename, { type })
       if (!navigator.canShare({ files: [file] })) continue
       try {
@@ -130,11 +146,11 @@ export function downloadText(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-/** .tsv rather than .txt: AnkiMobile/AnkiDroid only offer to open .tsv/.csv text imports.
+/** .tsv/.csv rather than .txt: AnkiMobile/AnkiDroid only offer to open .tsv/.csv text imports.
  *  Includes the book title when exporting a single book. */
-export function exportFilename(bookTitle?: string, now = new Date()) {
+export function exportFilename(bookTitle?: string, format: ExportFormat = 'tsv', now = new Date()) {
   const p = (n: number) => String(n).padStart(2, '0')
   const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}`
   const name = bookTitle?.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40)
-  return `anki-${name || 'cards'}-${stamp}.tsv`
+  return `anki-${name || 'cards'}-${stamp}.${format}`
 }
