@@ -20,7 +20,8 @@
     不显示"查词"按钮；同一选区的重复报告不会再查一次（只调用一次 API）。
   - OpenAI 默认 `gpt-6-luna`（最便宜，约 $0.08/千次查词，中位数约 1.8s；gpt-4.1-mini 快 0.45s 但贵 3.5 倍且已弃用）。
     推理模型（gpt-5+）发 `reasoning_effort: none`，gpt-4* 不发该参数；统一用 `max_completion_tokens`。
-  - DeepSeek 默认 `deepseek-flash`，`reasoning_effort: low`。
+  - DeepSeek 默认 `deepseek-flash`，`reasoning_effort: low`，`max_tokens: 2000`（推理 token 计入上限，
+    加了变位后常用 500+，1000 时会被截断成无法解析的 JSON）。
   - OpenAI 的错误响应（如无效 key 的 401）不带 CORS 头，浏览器里只能看到"请求失败"，读不到状态码。
   - 模型名经常变：换模型前先查 `GET {baseUrl}/models`，再用 `scripts/bench-lookup.ts` 实测延迟。
 - PWA：`vite-plugin-pwa`（配置在 `vite.config.ts`），预缓存全部构建产物（含 foliate-js 的懒加载分块）。
@@ -77,12 +78,24 @@
 ## 功能约定
 
 - 查词请求带上：选中的词 + 所在句子 + 书的语言。返回 `LookupResult`：
-  原形、音标、词性、语境中文释义、补充说明、整句翻译。前端按 服务商+模型+词+句子 缓存（本次会话内）。
+  原形、词性、语境中文释义、补充说明、整句翻译、不规则动词变位 `forms`。前端按 服务商+模型+词+句子 缓存（本次会话内）。
+  不要音标（用户要求去掉；旧卡片里的 `phonetic` 字段保留但不再显示、不导出）。
+- **名词正面带定冠词**：德语等有语法性别的语言，lemma 是"定冠词 + 单数主格"（Frauen → die Frau，只有复数的 die Leute）；
+  法语 l' 后注明 (m.)/(f.)；英语不加。
+- **不规则动词变位**（`forms: VerbForms | null`，`src/lookup-types.ts`）：只给不规则动词（德语强变化/混合变化/情态动词/
+  sein·haben·werden·wissen，英语不规则动词），规则动词和非动词为 null。三部分，规则的部分为空字符串：
+  `present` 现在时里不规则的人称（只算词干变化或整体不规则，如 du siehst, er sieht；du kommst 这种算规则）、
+  `past` 过去式（德语按人称列出、相同形式合并：ich/er sah, du sahst, wir/sie sahen, ihr saht）、
+  `perfect` 现在完成时（hat gesehen / ist gegangen / ist/hat gefahren）。可分动词带前缀（sieht aus、hat ausgesehen）。
+  查词面板、卡片抽屉和卡片背面（释义、补充说明之后）都显示（`formRows()` / `formsList()`），不可编辑。
 - 卡片：**正面 = 词典原形**（查词结果的 `lemma`，如 sieht → aussehen、gave…up → give up），可编辑；
   选中时的原文另存 `selected`，用于在例句里加粗和判断重复（旧卡片无 `selected`，用 `word`，见 `selectedText()`）。
   背面 = 释义（HTML，可含原句，原句里加粗的是选中的原文）。
 - 提示词（`src/ai.ts`）明确要求：可分动词/短语动词若句中有分离的前缀或小品词，lemma 给完整词条；
-  否则只还原屈折变化。改提示词或换模型后跑 `node scripts/check-lemmas.ts` 回归（12 个德/英例句）。
+  否则只还原屈折变化。改提示词或换模型后跑 `node scripts/check-lemmas.ts` 回归（19 个德/英例句：原形、名词冠词、
+  不规则动词变位；gpt-6-luna 19/19，deepseek-flash 18/19——把 wartete…auf 给成 warten auf）。
+  第一版变位提示词只说"列出不规则的"，模型会把规则的人称（du rufst an）和弱变化动词（machen）也列上；
+  必须明确写出判断标准和反例。
 - **卡片按书分开**：每张卡片带 `bookId`（书库 id）；`bookKey(card)` = `bookId`，没有时用 `title:<书名>`。
   - 阅读时 卡片 抽屉只显示本书卡片（`cardsUI.setScope({ key, title })`），"导出到 Anki"只导出本书。
   - 书库里 setScope(null)：全部卡片按书分组，每组有自己的"导出"，顶部"全部导出"。
@@ -123,7 +136,7 @@
   查词面板里若本书已有同样正面，按钮显示"✓ 本书已有「…」"并禁用；编辑卡片把正面改成本书已有的也会被拒绝。
   此规则之前留下的重复卡片在抽屉里标"重复"，导出时只保留最早的一张。
 - 卡片列表存在 localStorage（键 `epub-anki:cards`），导出后不自动清空。
-  `Card` = `LookupResult` 全部字段 + 正面 `word`、选中原文 `selected`、原句 `sentence`、`offset`、书名 `book`、`bookId`。
+  `Card` = `LookupResult` 全部字段（含 `forms`）+ 正面 `word`、选中原文 `selected`、原句 `sentence`、`offset`、书名 `book`、`bookId`。
   可编辑字段：正面、释义、补充说明。
 - 桌面选词：`watchSelection` 在 pointerup 后 10ms 报告选区；之后异步到达的 selectionchange 不得取消这次
   快速报告（否则"查词"按钮要等 300ms 才出现）。`LookupUI.onSelection` 对同一选区的重复报告不关闭已打开的面板。
@@ -193,6 +206,8 @@
 15. [x] iPhone 适配（存储改 ArrayBuffer、触屏翻页、输入框防缩放、主屏幕提示、分享面板导出、SVG 图标）
 16. [x] 改名 OttoBook；默认牌组 Otto生词（GUID 命名空间保持 EPUB生词）；iOS 导入指引改为 文件 → 长按 → 打开方式 → Anki
 17. [x] 新图标（小幽灵），含 Android 自适应图标与 iOS 主屏幕图标
+18. [x] 设置里可选牌组模式（每本书自动 / 导入时自己选）
+19. [x] 去掉音标；名词正面带定冠词（die Frau）；不规则动词背面给出现在时/过去式/现在完成时变位
 
 ## 命令
 

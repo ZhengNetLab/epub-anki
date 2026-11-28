@@ -1,5 +1,7 @@
 // Small DOM helpers shared by the UI modules.
 
+import { formRows, type VerbForms } from './lookup-types'
+
 export const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
   const e = document.createElement(tag)
   if (cls) e.className = cls
@@ -48,4 +50,17 @@ export function highlighted(sentence: string, word: string, hint: number): Docum
   frag.append(sentence.slice(0, i), el('mark', undefined, sentence.slice(i, i + word.length)),
     sentence.slice(i + word.length))
   return frag
+}
+
+/** Irregular verb forms as labelled rows, or null when there are none. */
+export function formsList(forms: VerbForms | null | undefined, cls: string): HTMLElement | null {
+  const rows = formRows(forms)
+  if (!rows.length) return null
+  const box = el('div', cls)
+  for (const [label, value] of rows) {
+    const row = el('div')
+    row.append(el('span', 'forms-label', label), value)
+    box.append(row)
+  }
+  return box
 }

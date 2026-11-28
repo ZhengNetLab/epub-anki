@@ -6,6 +6,7 @@
 
 import { normFront, selectedText, type Card } from './cards'
 import { findNear } from './dom'
+import { formRows } from './lookup-types'
 
 export const DECK = 'Otto生词'
 
@@ -47,11 +48,16 @@ function sentenceHtml(c: Card): string {
 
 export function cardBack(c: Card): string {
   const parts: string[] = [`<div>${escapeHtml(c.meaning)}</div>`]
-  const meta = [c.phonetic, c.pos].filter(Boolean).map(escapeHtml).join(' ')
+  const meta = c.pos ? escapeHtml(c.pos) : ''
   const lemma = c.lemma && c.lemma.toLowerCase() !== c.word.toLowerCase() ? `原形 ${escapeHtml(c.lemma)}` : ''
   const metaLine = [meta, lemma].filter(Boolean).join(' · ')
   if (metaLine) parts.push(`<div style='color:#888;font-size:0.9em'>${metaLine}</div>`)
   if (c.note) parts.push(`<div style='margin-top:4px'>${escapeHtml(c.note)}</div>`)
+  const forms = formRows(c.forms)
+  if (forms.length) {
+    parts.push(`<div style='margin-top:4px;font-size:0.9em'>${
+      forms.map(([label, value]) => `<span style='color:#888'>${label}</span> ${escapeHtml(value)}`).join('<br>')}</div>`)
+  }
   if (c.sentence) {
     parts.push('<hr>', `<div><i>${sentenceHtml(c)}</i></div>`)
     if (c.translation) parts.push(`<div style='margin-top:4px'>${escapeHtml(c.translation)}</div>`)

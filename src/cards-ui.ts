@@ -3,7 +3,7 @@
 // own Anki deck; in the library it shows every card grouped by book.
 
 import { bookKey, cards, selectedText, type Card, type CardGroup } from './cards'
-import { confirmDialog, el, highlighted } from './dom'
+import { confirmDialog, el, formsList, highlighted } from './dom'
 import { buildAnkiText, DECK, deckName, exportFilename, saveText } from './export'
 import { settings } from './settings'
 import { isIOS } from './platform'
@@ -103,10 +103,11 @@ export function initCardsUI(): CardsUI {
     const li = el('li', 'card-item')
     const front = el('div', 'card-front')
     front.append(el('span', 'card-word', c.word))
-    const meta = [c.phonetic, c.pos].filter(Boolean).join('  ')
-    if (meta) front.append(el('span', 'card-meta', meta))
+    if (c.pos) front.append(el('span', 'card-meta', c.pos))
     li.append(front, el('div', 'card-meaning', c.meaning))
     if (c.note) li.append(el('div', 'card-note', c.note))
+    const forms = formsList(c.forms, 'card-forms')
+    if (forms) li.append(forms)
     if (c.sentence) {
       const p = el('p', 'card-sentence')
       p.append(highlighted(c.sentence, selectedText(c), c.offset))

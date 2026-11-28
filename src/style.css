@@ -394,6 +394,9 @@ foliate-view { display: block; width: 100%; height: 100%; }
 .lookup-body { margin: 10px 0; font-size: 14px; }
 .lookup-meaning { font-size: 15px; }
 .lookup-note { margin-top: 6px; color: var(--muted); font-size: 13px; }
+.lookup-forms, .card-forms { margin-top: 6px; font-size: 13px; line-height: 1.5; }
+.card-forms { margin-top: 2px; }
+.forms-label { color: var(--muted); margin-right: 6px; }
 .lookup-status { color: var(--muted); }
 .lookup-error { color: #d33; margin-bottom: 8px; }
 .lookup-context {

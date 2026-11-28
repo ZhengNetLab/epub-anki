@@ -5,7 +5,7 @@ import type { LookupResult } from './lookup-types'
 import { lookupWord, NoKeyError } from './lookup-client'
 import { openSettings } from './settings-ui'
 import { settings } from './settings'
-import { el, highlighted } from './dom'
+import { el, formsList, highlighted } from './dom'
 import { cards } from './cards'
 
 const MARGIN = 8
@@ -157,7 +157,7 @@ export class LookupUI {
 
   #renderResult(info: SelectionInfo, r: LookupResult, head: HTMLElement, body: HTMLElement, context: HTMLElement) {
     const meta = el('div', 'lookup-meta')
-    const bits = [r.phonetic, r.pos].filter(Boolean)
+    const bits = [r.pos].filter(Boolean)
     if (bits.length) meta.append(bits.join('  '))
     if (r.lemma && r.lemma.toLowerCase() !== info.text.toLowerCase()) {
       if (bits.length) meta.append('  ·  ')
@@ -167,6 +167,8 @@ export class LookupUI {
 
     body.replaceChildren(el('div', 'lookup-meaning', r.meaning))
     if (r.note) body.append(el('div', 'lookup-note', r.note))
+    const forms = formsList(r.forms, 'lookup-forms')
+    if (forms) body.append(forms)
     if (r.translation) context.append(el('p', 'lookup-translation', r.translation))
 
     // Card front is the dictionary form (e.g. sieht → aussehen); keep the selected form too.

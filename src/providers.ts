@@ -39,7 +39,8 @@ export interface AiConfig {
 
 /** Provider/model-specific request body fields (token limit, reasoning effort). */
 export function requestExtras({ provider, model }: Pick<AiConfig, 'provider' | 'model'>): Record<string, unknown> {
-  if (provider === 'deepseek') return { max_tokens: 1000, reasoning_effort: 'low' }
+  // DeepSeek's reasoning tokens count toward max_tokens (often 500+ here), so leave room.
+  if (provider === 'deepseek') return { max_tokens: 2000, reasoning_effort: 'low' }
   // OpenAI reasoning models take max_completion_tokens; gpt-4* are non-reasoning and
   // reject reasoning_effort. "none" skips reasoning for the lowest latency.
   return /^gpt-4/.test(model)
